@@ -45,6 +45,9 @@ export default function Messaging({ partnership, currentUser }: MessagingProps) 
   });
 
   const getInitials = (name: string) => {
+    if (!name || typeof name !== 'string') {
+      return 'TU';
+    }
     return name
       .split(' ')
       .map(n => n[0])

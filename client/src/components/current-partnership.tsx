@@ -23,6 +23,9 @@ export default function CurrentPartnership({
   const [isReporting, setIsReporting] = useState(false);
 
   const getInitials = (name: string) => {
+    if (!name || typeof name !== 'string') {
+      return 'TU';
+    }
     return name
       .split(' ')
       .map(n => n[0])

@@ -61,11 +61,20 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
     mutationFn: async (data: z.infer<typeof updateProfileSchema>) => {
       return apiRequest('PUT', '/api/users/me', data);
     },
-    onSuccess: (data: any) => {
-      onUserUpdate(data);
-      toast({
-        title: "Profile Updated",
-        description: "Your profile has been successfully updated.",
+    onSuccess: (response: Response) => {
+      response.json().then((updatedUser: User) => {
+        onUserUpdate(updatedUser);
+        // Reset form with updated values
+        form.reset({
+          name: updatedUser.name,
+          gender: updatedUser.gender,
+          contactPreference: updatedUser.contactPreference,
+          timezone: updatedUser.timezone || "",
+        });
+        toast({
+          title: "Profile Updated",
+          description: "Your profile has been successfully updated.",
+        });
       });
     },
     onError: (error: any) => {
@@ -116,6 +125,9 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
   };
 
   const getInitials = (name: string) => {
+    if (!name || typeof name !== 'string') {
+      return 'TU';
+    }
     return name
       .split(' ')
       .map(n => n[0])

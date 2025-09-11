@@ -18,6 +18,9 @@ export default function Header({ user, hasActiveMatch }: HeaderProps) {
   };
 
   const getInitials = (name: string) => {
+    if (!name || typeof name !== 'string') {
+      return 'TU'; // Default initials for "TI User"
+    }
     return name
       .split(' ')
       .map(n => n[0])

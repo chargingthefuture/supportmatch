@@ -104,6 +104,9 @@ export default function Admin({ user }: AdminProps) {
   });
 
   const getInitials = (name: string) => {
+    if (!name || typeof name !== 'string') {
+      return 'TU';
+    }
     return name
       .split(' ')
       .map(n => n[0])

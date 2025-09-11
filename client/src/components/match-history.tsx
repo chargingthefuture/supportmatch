@@ -25,6 +25,9 @@ export default function MatchHistory({ currentUser, onExcludeUser }: MatchHistor
   });
 
   const getInitials = (name: string) => {
+    if (!name || typeof name !== 'string') {
+      return 'TU';
+    }
     return name
       .split(' ')
       .map(n => n[0])
@@ -156,10 +159,10 @@ export default function MatchHistory({ currentUser, onExcludeUser }: MatchHistor
                       </td>
                       <td className="py-4">
                         <Badge 
-                          className={getStatusColor(partnership.status)}
+                          className={getStatusColor(partnership.status || 'active')}
                           data-testid={`badge-status-${partnership.id}`}
                         >
-                          {getStatusLabel(partnership.status)}
+                          {getStatusLabel(partnership.status || 'active')}
                         </Badge>
                       </td>
                       <td className="py-4">
