@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertMessageSchema, insertExclusionSchema, insertReportSchema } from "@shared/schema";
+import { insertUserSchema, insertMessageSchema, insertExclusionSchema, insertReportSchema, insertInviteCodeSchema } from "@shared/schema";
 import { z } from "zod";
 
 // Simple session tracking
@@ -86,7 +86,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Username already exists" });
       }
 
-      const user = await storage.createUser(userData);
+      // Validate invite code
+      const inviteCode = await storage.getInviteCode(userData.inviteCode);
+      if (!inviteCode) {
+        return res.status(400).json({ message: "Invalid invite code" });
+      }
+      
+      if (!inviteCode.isActive) {
+        return res.status(400).json({ message: "Invite code is no longer active" });
+      }
+      
+      // Check if invite code has expired
+      if (inviteCode.expiresAt && new Date() > inviteCode.expiresAt) {
+        return res.status(400).json({ message: "Invite code has expired" });
+      }
+      
+      // Check if invite code has reached max uses
+      const currentUses = parseInt(inviteCode.currentUses || "0");
+      const maxUses = parseInt(inviteCode.maxUses || "1");
+      if (currentUses >= maxUses) {
+        return res.status(400).json({ message: "Invite code has reached maximum usage" });
+      }
+
+      // Create user without invite code field
+      const { inviteCode: _, ...userDataWithoutInvite } = userData;
+      const user = await storage.createUser(userDataWithoutInvite as any);
+      
+      // Mark invite code as used
+      await storage.markInviteCodeAsUsed(userData.inviteCode, user.id);
+      
       const sessionId = generateSession();
       sessions.set(sessionId, user.id);
       
@@ -306,6 +334,73 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ message: "Monthly matches created successfully" });
     } catch (error) {
       res.status(500).json({ message: "Failed to create matches" });
+    }
+  });
+
+  // Invite code management routes (admin only)
+  app.get("/api/admin/invite-codes", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const inviteCodes = await storage.getAllInviteCodes();
+      const inviteCodesWithUsers = await Promise.all(
+        inviteCodes.map(async (code) => {
+          const creator = await storage.getUser(code.createdBy);
+          const usedByUser = code.usedBy ? await storage.getUser(code.usedBy) : null;
+          return {
+            ...code,
+            creator: creator ? { id: creator.id, username: creator.username, name: creator.name } : null,
+            usedByUser: usedByUser ? { id: usedByUser.id, username: usedByUser.username, name: usedByUser.name } : null
+          };
+        })
+      );
+      res.json(inviteCodesWithUsers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get invite codes" });
+    }
+  });
+
+  app.post("/api/admin/invite-codes", requireAuth, requireAdmin, async (req: any, res: any) => {
+    try {
+      // Generate a random invite code if not provided
+      const generateInviteCode = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let result = '';
+        for (let i = 0; i < 8; i++) {
+          result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+      };
+
+      const inviteCodeData = {
+        code: req.body.code || generateInviteCode(),
+        maxUses: req.body.maxUses || "1",
+        expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : null,
+      };
+
+      // Validate the data
+      const validatedData = insertInviteCodeSchema.parse(inviteCodeData);
+      
+      // Check if code already exists
+      const existingCode = await storage.getInviteCode(validatedData.code);
+      if (existingCode) {
+        return res.status(400).json({ message: "Invite code already exists" });
+      }
+
+      const inviteCode = await storage.createInviteCode(req.userId, validatedData);
+      res.json(inviteCode);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to create invite code" });
+    }
+  });
+
+  app.delete("/api/admin/invite-codes/:code", requireAuth, requireAdmin, async (req, res) => {
+    try {
+      const inviteCode = await storage.deactivateInviteCode(req.params.code);
+      if (!inviteCode) {
+        return res.status(404).json({ message: "Invite code not found" });
+      }
+      res.json({ message: "Invite code deactivated successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to deactivate invite code" });
     }
   });
 
