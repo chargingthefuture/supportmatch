@@ -8,6 +8,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +25,11 @@ import {
   XCircle,
   Eye,
   UserX,
-  Settings
+  Settings,
+  Key,
+  Plus,
+  Trash2,
+  Copy
 } from "lucide-react";
 
 interface AdminStats {
@@ -41,12 +48,27 @@ interface ReportWithUsers {
   reportedUser: User;
 }
 
+interface InviteCodeWithUsers {
+  id: string;
+  code: string;
+  isActive: boolean;
+  maxUses: string;
+  currentUses: string;
+  expiresAt: string | null;
+  createdAt: string;
+  usedAt: string | null;
+  creator: { id: string; username: string; name: string } | null;
+  usedByUser: { id: string; username: string; name: string } | null;
+}
+
 interface AdminProps {
   user: User;
 }
 
 export default function Admin({ user }: AdminProps) {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [newInviteMaxUses, setNewInviteMaxUses] = useState("1");
+  const [newInviteExpires, setNewInviteExpires] = useState("");
   const { toast } = useToast();
 
   // Fetch admin stats
@@ -58,6 +80,12 @@ export default function Admin({ user }: AdminProps) {
   const { data: reports = [], isLoading: reportsLoading } = useQuery<ReportWithUsers[]>({
     queryKey: ['/api/admin/reports'],
     enabled: activeTab === 'reports',
+  });
+
+  // Fetch invite codes
+  const { data: inviteCodes = [], isLoading: inviteCodesLoading } = useQuery<InviteCodeWithUsers[]>({
+    queryKey: ['/api/admin/invite-codes'],
+    enabled: activeTab === 'invites',
   });
 
   // Create matches mutation
@@ -98,6 +126,53 @@ export default function Admin({ user }: AdminProps) {
       toast({
         title: "Error",
         description: error.message || "Failed to update report",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Create invite code mutation
+  const createInviteCode = useMutation({
+    mutationFn: async ({ maxUses, expiresAt }: { maxUses: string; expiresAt?: string }) => {
+      return apiRequest('POST', '/api/admin/invite-codes', {
+        maxUses,
+        expiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+      });
+    },
+    onSuccess: () => {
+      toast({
+        title: "Invite Code Created",
+        description: "New invite code has been successfully created.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/invite-codes'] });
+      setNewInviteMaxUses("1");
+      setNewInviteExpires("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create invite code",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Deactivate invite code mutation
+  const deactivateInviteCode = useMutation({
+    mutationFn: async (code: string) => {
+      return apiRequest('DELETE', `/api/admin/invite-codes/${code}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Invite Code Deactivated",
+        description: "Invite code has been deactivated.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/invite-codes'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to deactivate invite code",
         variant: "destructive",
       });
     },
@@ -147,6 +222,43 @@ export default function Admin({ user }: AdminProps) {
     await createMatches.mutateAsync();
   };
 
+  const handleCreateInviteCode = async () => {
+    await createInviteCode.mutateAsync({
+      maxUses: newInviteMaxUses,
+      expiresAt: newInviteExpires,
+    });
+  };
+
+  const handleDeactivateInviteCode = async (code: string) => {
+    await deactivateInviteCode.mutateAsync(code);
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied",
+        description: "Invite code copied to clipboard.",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to copy to clipboard.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background" data-testid="page-admin">
       <Header user={user} />
@@ -158,7 +270,7 @@ export default function Admin({ user }: AdminProps) {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3" data-testid="tabs-admin">
+          <TabsList className="grid w-full grid-cols-4" data-testid="tabs-admin">
             <TabsTrigger value="dashboard" data-testid="tab-dashboard">
               <Settings className="w-4 h-4 mr-2" />
               Dashboard
@@ -166,6 +278,10 @@ export default function Admin({ user }: AdminProps) {
             <TabsTrigger value="reports" data-testid="tab-reports">
               <AlertTriangle className="w-4 h-4 mr-2" />
               Reports ({reports.filter(r => r.status === 'pending').length})
+            </TabsTrigger>
+            <TabsTrigger value="invites" data-testid="tab-invites">
+              <Key className="w-4 h-4 mr-2" />
+              Invite Codes
             </TabsTrigger>
             <TabsTrigger value="system" data-testid="tab-system">
               <Shield className="w-4 h-4 mr-2" />
@@ -460,6 +576,172 @@ export default function Admin({ user }: AdminProps) {
                     </Table>
                   </ScrollArea>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Invite Codes Tab */}
+          <TabsContent value="invites" className="space-y-6">
+            <Card data-testid="card-generate-invite">
+              <CardHeader>
+                <CardTitle>Generate New Invite Code</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Create invite codes to allow new users to register on the platform.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-end">
+                  <div className="space-y-2">
+                    <Label htmlFor="max-uses">Maximum Uses</Label>
+                    <Select value={newInviteMaxUses} onValueChange={setNewInviteMaxUses}>
+                      <SelectTrigger data-testid="select-max-uses">
+                        <SelectValue placeholder="Select max uses" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 use</SelectItem>
+                        <SelectItem value="5">5 uses</SelectItem>
+                        <SelectItem value="10">10 uses</SelectItem>
+                        <SelectItem value="25">25 uses</SelectItem>
+                        <SelectItem value="100">100 uses</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="expires-at">Expiration Date (Optional)</Label>
+                    <Input
+                      id="expires-at"
+                      type="datetime-local"
+                      value={newInviteExpires}
+                      onChange={(e) => setNewInviteExpires(e.target.value)}
+                      data-testid="input-expires-at"
+                    />
+                  </div>
+                  <Button
+                    onClick={handleCreateInviteCode}
+                    disabled={createInviteCode.isPending}
+                    data-testid="button-generate-invite"
+                  >
+                    <Plus className={`h-4 w-4 mr-2 ${createInviteCode.isPending ? 'animate-spin' : ''}`} />
+                    {createInviteCode.isPending ? "Generating..." : "Generate Code"}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card data-testid="card-invite-codes-list">
+              <CardHeader>
+                <CardTitle>Invite Codes Management</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  View and manage all generated invite codes.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-96">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Code</TableHead>
+                        <TableHead>Created By</TableHead>
+                        <TableHead>Usage</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Expires</TableHead>
+                        <TableHead>Used By</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {inviteCodesLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center">
+                            Loading invite codes...
+                          </TableCell>
+                        </TableRow>
+                      ) : inviteCodes.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground">
+                            No invite codes generated yet.
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        inviteCodes.map((code) => (
+                          <TableRow key={code.id} data-testid={`row-invite-${code.code}`}>
+                            <TableCell>
+                              <div className="flex items-center space-x-2">
+                                <code className="bg-muted px-2 py-1 rounded text-sm font-mono">
+                                  {code.code}
+                                </code>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => copyToClipboard(code.code)}
+                                  data-testid={`button-copy-${code.code}`}
+                                >
+                                  <Copy className="h-3 w-3" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {code.creator ? (
+                                <div className="flex items-center space-x-2">
+                                  <div className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center text-xs">
+                                    {getInitials(code.creator.name)}
+                                  </div>
+                                  <span className="text-sm">{code.creator.username}</span>
+                                </div>
+                              ) : (
+                                "Unknown"
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm">
+                                {code.currentUses}/{code.maxUses}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              <Badge 
+                                className={code.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}
+                                data-testid={`badge-status-${code.code}`}
+                              >
+                                {code.isActive ? 'Active' : 'Inactive'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <span className="text-sm text-muted-foreground">
+                                {code.expiresAt ? formatDate(code.expiresAt) : 'Never'}
+                              </span>
+                            </TableCell>
+                            <TableCell>
+                              {code.usedByUser ? (
+                                <div className="flex items-center space-x-2">
+                                  <div className="bg-secondary text-secondary-foreground w-6 h-6 rounded-full flex items-center justify-center text-xs">
+                                    {getInitials(code.usedByUser.name)}
+                                  </div>
+                                  <span className="text-sm">{code.usedByUser.username}</span>
+                                </div>
+                              ) : (
+                                <span className="text-sm text-muted-foreground">Not used</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              {code.isActive && (
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDeactivateInviteCode(code.code)}
+                                  disabled={deactivateInviteCode.isPending}
+                                  data-testid={`button-deactivate-${code.code}`}
+                                >
+                                  <Trash2 className="h-3 w-3 mr-1" />
+                                  Deactivate
+                                </Button>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
               </CardContent>
             </Card>
           </TabsContent>
