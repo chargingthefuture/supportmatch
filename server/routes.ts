@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertMessageSchema, insertExclusionSchema, insertReportSchema } from "@shared/schema";
@@ -12,7 +12,7 @@ function generateSession(): string {
 }
 
 function requireAuth(req: any, res: any, next: any) {
-  const sessionId = req.headers['x-session-id'];
+  const sessionId = req.headers['x-session-id'] as string;
   const userId = sessions.get(sessionId);
   
   if (!userId) {
@@ -114,14 +114,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/auth/logout", requireAuth, (req, res) => {
-    const sessionId = req.headers['x-session-id'];
+  app.post("/api/auth/logout", requireAuth, (req: any, res: any) => {
+    const sessionId = req.headers['x-session-id'] as string;
     sessions.delete(sessionId);
     res.json({ message: "Logged out" });
   });
 
   // User routes
-  app.get("/api/users/me", requireAuth, async (req, res) => {
+  app.get("/api/users/me", requireAuth, async (req: any, res: any) => {
     try {
       const user = await storage.getUser(req.userId);
       res.json(user);
@@ -130,7 +130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/users/me", requireAuth, async (req, res) => {
+  app.put("/api/users/me", requireAuth, async (req: any, res: any) => {
     try {
       const updates = req.body;
       const user = await storage.updateUser(req.userId, updates);
@@ -141,7 +141,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Partnership routes
-  app.get("/api/partnerships/current", requireAuth, async (req, res) => {
+  app.get("/api/partnerships/current", requireAuth, async (req: any, res: any) => {
     try {
       const partnership = await storage.getActivePartnershipForUser(req.userId);
       if (!partnership) {
@@ -157,7 +157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/partnerships/history", requireAuth, async (req, res) => {
+  app.get("/api/partnerships/history", requireAuth, async (req: any, res: any) => {
     try {
       const partnerships = await storage.getUserPartnerships(req.userId);
       const partnershipsWithPartners = await Promise.all(
@@ -174,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/partnerships/:id", requireAuth, async (req, res) => {
+  app.put("/api/partnerships/:id", requireAuth, async (req: any, res: any) => {
     try {
       const partnership = await storage.updatePartnership(req.params.id, req.body);
       res.json(partnership);
@@ -184,7 +184,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Message routes
-  app.get("/api/messages/:partnershipId", requireAuth, async (req, res) => {
+  app.get("/api/messages/:partnershipId", requireAuth, async (req: any, res: any) => {
     try {
       const messages = await storage.getPartnershipMessages(req.params.partnershipId);
       const messagesWithSenders = await Promise.all(
@@ -200,7 +200,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/messages", requireAuth, async (req, res) => {
+  app.post("/api/messages", requireAuth, async (req: any, res: any) => {
     try {
       const messageData = insertMessageSchema.parse(req.body);
       const message = await storage.createMessage(req.userId, messageData);
@@ -213,7 +213,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Exclusion routes
-  app.get("/api/exclusions", requireAuth, async (req, res) => {
+  app.get("/api/exclusions", requireAuth, async (req: any, res: any) => {
     try {
       const exclusions = await storage.getUserExclusions(req.userId);
       const exclusionsWithUsers = await Promise.all(
@@ -229,7 +229,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/exclusions", requireAuth, async (req, res) => {
+  app.post("/api/exclusions", requireAuth, async (req: any, res: any) => {
     try {
       const exclusionData = insertExclusionSchema.parse(req.body);
       const exclusion = await storage.createExclusion(req.userId, exclusionData);
@@ -240,7 +240,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Report routes
-  app.post("/api/reports", requireAuth, async (req, res) => {
+  app.post("/api/reports", requireAuth, async (req: any, res: any) => {
     try {
       const reportData = insertReportSchema.parse(req.body);
       const report = await storage.createReport(req.userId, reportData);

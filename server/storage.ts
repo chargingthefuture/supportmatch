@@ -64,7 +64,8 @@ export class MemStorage implements IStorage {
       id, 
       isActive: true, 
       isAdmin: false,
-      createdAt: new Date()
+      createdAt: new Date(),
+      timezone: insertUser.timezone || null
     };
     this.users.set(id, user);
     return user;
@@ -157,7 +158,8 @@ export class MemStorage implements IStorage {
       ...insertExclusion,
       id,
       userId,
-      createdAt: new Date()
+      createdAt: new Date(),
+      reason: insertExclusion.reason || null
     };
     this.exclusions.set(id, exclusion);
     return exclusion;
@@ -181,7 +183,9 @@ export class MemStorage implements IStorage {
       id,
       reporterId,
       status: "pending" as const,
-      createdAt: new Date()
+      createdAt: new Date(),
+      description: insertReport.description || null,
+      partnershipId: insertReport.partnershipId || null
     };
     this.reports.set(id, report);
     return report;

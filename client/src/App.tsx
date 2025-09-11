@@ -7,11 +7,11 @@ import { useEffect, useState } from "react";
 import { authManager } from "./lib/auth";
 import { User } from "@shared/schema";
 
-import NotFound from "@/pages/not-found";
-import Dashboard from "@/pages/dashboard";
-import Register from "@/pages/register";
-import Profile from "@/pages/profile";
-import Admin from "@/pages/admin";
+import NotFound from "./pages/not-found";
+import Dashboard from "./pages/dashboard";
+import Register from "./pages/register";
+import Profile from "./pages/profile";
+import Admin from "./pages/admin";
 
 function Router() {
   const [user, setUser] = useState<User | null>(null);

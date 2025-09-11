@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { User } from "@shared/schema";
+import { User, Partnership } from "@shared/schema";
 import Header from "@/components/header";
 import CurrentPartnership from "@/components/current-partnership";
 import Messaging from "@/components/messaging";
@@ -9,6 +9,16 @@ import MatchHistory from "@/components/match-history";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+
+interface CurrentPartnershipData {
+  partnership: Partnership;
+  partner: User;
+}
+
+interface PartnershipWithPartner {
+  partnership: Partnership;
+  partner: User;
+}
 
 interface DashboardProps {
   user: User;
@@ -19,12 +29,12 @@ export default function Dashboard({ user }: DashboardProps) {
   const { toast } = useToast();
 
   // Fetch current partnership
-  const { data: currentPartnership, isLoading: partnershipLoading } = useQuery({
+  const { data: currentPartnership, isLoading: partnershipLoading } = useQuery<CurrentPartnershipData | null>({
     queryKey: ['/api/partnerships/current'],
   });
 
   // Fetch partnership history for count
-  const { data: partnershipHistory = [] } = useQuery({
+  const { data: partnershipHistory = [] } = useQuery<PartnershipWithPartner[]>({
     queryKey: ['/api/partnerships/history'],
   });
 

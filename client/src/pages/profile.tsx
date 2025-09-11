@@ -61,8 +61,8 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
     mutationFn: async (data: z.infer<typeof updateProfileSchema>) => {
       return apiRequest('PUT', '/api/users/me', data);
     },
-    onSuccess: (updatedUser) => {
-      onUserUpdate(updatedUser);
+    onSuccess: (data: any) => {
+      onUserUpdate(data);
       toast({
         title: "Profile Updated",
         description: "Your profile has been successfully updated.",
@@ -262,7 +262,8 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                         <FormControl>
                           <Input 
                             placeholder="e.g., PST, EST, UTC-8" 
-                            {...field} 
+                            {...field}
+                            value={field.value || ""}
                             data-testid="input-timezone"
                           />
                         </FormControl>

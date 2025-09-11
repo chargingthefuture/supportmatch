@@ -54,6 +54,7 @@ export default function MatchHistory({ currentUser, onExcludeUser }: MatchHistor
   };
 
   const formatDateRange = (startDate: string, endDate: string) => {
+    if (!startDate || !endDate) return 'Dates unavailable';
     const start = new Date(startDate);
     const end = new Date(endDate);
     
@@ -61,6 +62,7 @@ export default function MatchHistory({ currentUser, onExcludeUser }: MatchHistor
   };
 
   const getDuration = (startDate: string, endDate: string) => {
+    if (!startDate || !endDate) return '0 weeks';
     const start = new Date(startDate);
     const end = new Date(endDate);
     const diffInDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
@@ -145,10 +147,10 @@ export default function MatchHistory({ currentUser, onExcludeUser }: MatchHistor
                       <td className="py-4">
                         <div>
                           <p className="font-medium" data-testid={`text-duration-${partnership.id}`}>
-                            {formatDateRange(partnership.startDate.toString(), partnership.endDate.toString())}
+                            {formatDateRange(partnership.startDate?.toString() || "", partnership.endDate?.toString() || "")}
                           </p>
                           <p className="text-muted-foreground" data-testid={`text-duration-weeks-${partnership.id}`}>
-                            {getDuration(partnership.startDate.toString(), partnership.endDate.toString())}
+                            {getDuration(partnership.startDate?.toString() || "", partnership.endDate?.toString() || "")}
                           </p>
                         </div>
                       </td>

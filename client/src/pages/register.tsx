@@ -189,7 +189,8 @@ export default function Register({ onLogin }: RegisterProps) {
                         <FormControl>
                           <Input 
                             placeholder="e.g., PST, EST, UTC-8" 
-                            {...field} 
+                            {...field}
+                            value={field.value || ""}
                             data-testid="input-timezone"
                           />
                         </FormControl>
