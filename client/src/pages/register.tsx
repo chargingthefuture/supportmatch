@@ -15,6 +15,7 @@ import { z } from "zod";
 
 const registerSchema = insertUserSchema.extend({
   confirmPassword: z.string().min(1, "Please confirm your password"),
+  inviteCode: z.string().min(6, "Invite code must be at least 6 characters"),
 }).refine((data) => data.username === data.confirmPassword, {
   message: "Please enter your username twice for confirmation",
   path: ["confirmPassword"],
@@ -38,6 +39,7 @@ export default function Register({ onLogin }: RegisterProps) {
       contactPreference: undefined,
       timezone: "",
       confirmPassword: "",
+      inviteCode: "",
     },
   });
 
@@ -115,6 +117,24 @@ export default function Register({ onLogin }: RegisterProps) {
 
               {!isLogin && (
                 <>
+                  <FormField
+                    control={form.control}
+                    name="inviteCode"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Invite Code</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="Enter your invite code" 
+                            {...field} 
+                            data-testid="input-invite-code"
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <FormField
                     control={form.control}
                     name="name"
