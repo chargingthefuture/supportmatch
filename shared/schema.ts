@@ -64,8 +64,8 @@ export const inviteCodes = pgTable("invite_codes", {
   createdBy: varchar("created_by").notNull().references(() => users.id),
   usedBy: varchar("used_by").references(() => users.id),
   isActive: boolean("is_active").default(true),
-  maxUses: varchar("max_uses").default("1"), // Number of times the code can be used
-  currentUses: varchar("current_uses").default("0"), // Number of times used
+  maxUses: text("max_uses").default("1"), // Number of times the code can be used
+  currentUses: text("current_uses").default("0"), // Number of times used
   expiresAt: timestamp("expires_at"), // Optional expiration date
   createdAt: timestamp("created_at").defaultNow(),
   usedAt: timestamp("used_at"),
@@ -83,7 +83,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
 });
 
 export const insertInviteCodeSchema = createInsertSchema(inviteCodes).pick({
-  code: true,
   maxUses: true,
   expiresAt: true,
 });

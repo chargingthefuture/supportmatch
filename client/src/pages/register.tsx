@@ -12,6 +12,7 @@ import { Handshake } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { User } from "@shared/schema";
 import { z } from "zod";
+import { useLocation } from "wouter";
 
 const registerSchema = insertUserSchema.extend({
   confirmPassword: z.string().min(1, "Please confirm your password"),
@@ -29,6 +30,7 @@ export default function Register({ onLogin }: RegisterProps) {
   const [isLogin, setIsLogin] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
+  const [, navigate] = useLocation();
 
   const form = useForm<z.infer<typeof registerSchema>>({
     resolver: zodResolver(isLogin ? insertUserSchema.pick({ username: true }) : registerSchema),
@@ -68,6 +70,9 @@ export default function Register({ onLogin }: RegisterProps) {
         title: isLogin ? "Welcome back!" : "Registration successful!",
         description: isLogin ? "You've been logged in." : "Your account has been created.",
       });
+
+      // Navigate to home page after successful authentication
+      navigate("/");
     } catch (error: any) {
       toast({
         title: "Error",

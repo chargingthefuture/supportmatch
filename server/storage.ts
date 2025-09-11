@@ -54,6 +54,29 @@ export class MemStorage implements IStorage {
     this.exclusions = new Map();
     this.reports = new Map();
     this.inviteCodes = new Map();
+    
+    // Seed admin user for development
+    this.seedAdminUser();
+  }
+
+  private seedAdminUser() {
+    // Only create admin if ADMIN_TOKEN environment variable is set
+    const adminToken = process.env.ADMIN_TOKEN;
+    if (adminToken) {
+      const adminId = randomUUID();
+      const adminUser: User = {
+        id: adminId,
+        username: `admin_${adminToken.substring(0, 8)}`, // Include token prefix in username for security
+        name: "System Administrator",
+        gender: "prefer_not_to_say",
+        contactPreference: "app_only",
+        timezone: null,
+        isActive: true,
+        isAdmin: true,
+        createdAt: new Date()
+      };
+      this.users.set(adminId, adminUser);
+    }
   }
 
   async getUser(id: string): Promise<User | undefined> {
