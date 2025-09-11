@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Partnership, type Message, type InsertMessage, type Exclusion, type InsertExclusion, type Report, type InsertReport } from "@shared/schema";
+import { type User, type InsertUser, type Partnership, type Message, type InsertMessage, type Exclusion, type InsertExclusion, type Report, type InsertReport, type InviteCode, type InsertInviteCode } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -30,6 +30,13 @@ export interface IStorage {
   createReport(reporterId: string, report: InsertReport): Promise<Report>;
   getAllReports(): Promise<Report[]>;
   updateReport(id: string, updates: Partial<Report>): Promise<Report | undefined>;
+
+  // Invite code methods
+  createInviteCode(createdBy: string, inviteCode: InsertInviteCode): Promise<InviteCode>;
+  getInviteCode(code: string): Promise<InviteCode | undefined>;
+  getAllInviteCodes(): Promise<InviteCode[]>;
+  markInviteCodeAsUsed(code: string, usedBy: string): Promise<InviteCode | undefined>;
+  deactivateInviteCode(code: string): Promise<InviteCode | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -38,6 +45,7 @@ export class MemStorage implements IStorage {
   private messages: Map<string, Message>;
   private exclusions: Map<string, Exclusion>;
   private reports: Map<string, Report>;
+  private inviteCodes: Map<string, InviteCode>;
 
   constructor() {
     this.users = new Map();
@@ -45,6 +53,7 @@ export class MemStorage implements IStorage {
     this.messages = new Map();
     this.exclusions = new Map();
     this.reports = new Map();
+    this.inviteCodes = new Map();
   }
 
   async getUser(id: string): Promise<User | undefined> {
@@ -204,6 +213,61 @@ export class MemStorage implements IStorage {
     const updatedReport = { ...report, ...updates };
     this.reports.set(id, updatedReport);
     return updatedReport;
+  }
+
+  async createInviteCode(createdBy: string, insertInviteCode: InsertInviteCode): Promise<InviteCode> {
+    const id = randomUUID();
+    const inviteCode: InviteCode = {
+      ...insertInviteCode,
+      id,
+      createdBy,
+      usedBy: null,
+      isActive: true,
+      maxUses: insertInviteCode.maxUses || "1",
+      currentUses: "0",
+      expiresAt: insertInviteCode.expiresAt || null,
+      createdAt: new Date(),
+      usedAt: null
+    };
+    this.inviteCodes.set(insertInviteCode.code, inviteCode);
+    return inviteCode;
+  }
+
+  async getInviteCode(code: string): Promise<InviteCode | undefined> {
+    return this.inviteCodes.get(code);
+  }
+
+  async getAllInviteCodes(): Promise<InviteCode[]> {
+    return Array.from(this.inviteCodes.values()).sort((a, b) => 
+      b.createdAt!.getTime() - a.createdAt!.getTime()
+    );
+  }
+
+  async markInviteCodeAsUsed(code: string, usedBy: string): Promise<InviteCode | undefined> {
+    const inviteCode = this.inviteCodes.get(code);
+    if (!inviteCode) return undefined;
+    
+    const currentUses = parseInt(inviteCode.currentUses || "0") + 1;
+    const maxUses = parseInt(inviteCode.maxUses || "1");
+    
+    const updatedInviteCode = { 
+      ...inviteCode, 
+      usedBy,
+      currentUses: currentUses.toString(),
+      usedAt: new Date(),
+      isActive: currentUses < maxUses // Deactivate if max uses reached
+    };
+    this.inviteCodes.set(code, updatedInviteCode);
+    return updatedInviteCode;
+  }
+
+  async deactivateInviteCode(code: string): Promise<InviteCode | undefined> {
+    const inviteCode = this.inviteCodes.get(code);
+    if (!inviteCode) return undefined;
+    
+    const updatedInviteCode = { ...inviteCode, isActive: false };
+    this.inviteCodes.set(code, updatedInviteCode);
+    return updatedInviteCode;
   }
 }
 

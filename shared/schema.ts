@@ -58,6 +58,19 @@ export const reports = pgTable("reports", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+export const inviteCodes = pgTable("invite_codes", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code", { length: 20 }).notNull().unique(),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  usedBy: varchar("used_by").references(() => users.id),
+  isActive: boolean("is_active").default(true),
+  maxUses: varchar("max_uses").default("1"), // Number of times the code can be used
+  currentUses: varchar("current_uses").default("0"), // Number of times used
+  expiresAt: timestamp("expires_at"), // Optional expiration date
+  createdAt: timestamp("created_at").defaultNow(),
+  usedAt: timestamp("used_at"),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -65,6 +78,14 @@ export const insertUserSchema = createInsertSchema(users).pick({
   gender: true,
   contactPreference: true,
   timezone: true,
+}).extend({
+  inviteCode: z.string().min(1, "Invite code is required"),
+});
+
+export const insertInviteCodeSchema = createInsertSchema(inviteCodes).pick({
+  code: true,
+  maxUses: true,
+  expiresAt: true,
 });
 
 export const insertMessageSchema = createInsertSchema(messages).pick({
@@ -94,3 +115,5 @@ export type Exclusion = typeof exclusions.$inferSelect;
 export type InsertExclusion = z.infer<typeof insertExclusionSchema>;
 export type Report = typeof reports.$inferSelect;
 export type InsertReport = z.infer<typeof insertReportSchema>;
+export type InviteCode = typeof inviteCodes.$inferSelect;
+export type InsertInviteCode = z.infer<typeof insertInviteCodeSchema>;
