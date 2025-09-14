@@ -9,6 +9,31 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { storage } from "./storage";
 
+// Helper function to extract invite code from OAuth state parameter
+function extractInviteCodeFromState(state?: string): string | undefined {
+  if (!state) return undefined;
+  
+  try {
+    // Parse state parameter for invite code
+    const parsed = JSON.parse(decodeURIComponent(state));
+    return parsed.inviteCode;
+  } catch {
+    // If state is not JSON, treat it as a simple invite code
+    return state;
+  }
+}
+
+// Helper function to encode invite code in OAuth state parameter
+function encodeInviteCodeInState(inviteCode?: string): string | undefined {
+  if (!inviteCode) return undefined;
+  
+  try {
+    return encodeURIComponent(JSON.stringify({ inviteCode }));
+  } catch {
+    return inviteCode;
+  }
+}
+
 if (!process.env.REPLIT_DOMAINS) {
   throw new Error("Environment variable REPLIT_DOMAINS not provided");
 }
@@ -58,14 +83,47 @@ function updateUserSession(
 
 async function upsertUser(
   claims: any,
+  inviteCode?: string
 ) {
+  const userId = claims["sub"];
+  
+  // Check if user already exists
+  const existingUser = await storage.getUser(userId);
+  
+  if (existingUser) {
+    // User exists - allow normal update without invite code validation
+    await storage.upsertUser({
+      id: userId,
+      email: claims["email"],
+      firstName: claims["first_name"],
+      lastName: claims["last_name"],
+      profileImageUrl: claims["profile_image_url"],
+    });
+    return;
+  }
+  
+  // New user - require invite code validation
+  if (!inviteCode) {
+    throw new Error("Invite code required for new user registration");
+  }
+  
+  // Verify invite code
+  const inviteVerification = await storage.verifyInvite(inviteCode);
+  if (!inviteVerification.valid) {
+    throw new Error(inviteVerification.reason || "Invalid invite code");
+  }
+  
+  // Create new user
   await storage.upsertUser({
-    id: claims["sub"],
+    id: userId,
     email: claims["email"],
     firstName: claims["first_name"],
     lastName: claims["last_name"],
     profileImageUrl: claims["profile_image_url"],
   });
+  
+  // Consume invite code
+  await storage.consumeInvite(inviteCode, userId);
 }
 
 export async function setupAuth(app: Express) {
@@ -82,8 +140,16 @@ export async function setupAuth(app: Express) {
   ) => {
     const user = {};
     updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
-    verified(null, user);
+    
+    try {
+      // Extract invite code from state parameter if present
+      const inviteCode = extractInviteCodeFromState(tokens.state as string | undefined);
+      await upsertUser(tokens.claims(), inviteCode);
+      verified(null, user);
+    } catch (error) {
+      // Pass invite code validation errors to the callback
+      verified(error, null);
+    }
   };
 
   for (const domain of process.env
@@ -104,15 +170,30 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
+    // Extract invite code from query parameters
+    const inviteCode = req.query.inviteCode as string;
+    
+    const authOptions: any = {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
-    })(req, res, next);
+    };
+    
+    // Include invite code in state parameter if provided
+    if (inviteCode) {
+      authOptions.state = encodeInviteCodeInState(inviteCode);
+    }
+    
+    passport.authenticate(`replitauth:${req.hostname}`, authOptions)(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, (err, user, info) => {
+    passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any, info: any) => {
       if (err) {
+        // Handle invite code validation errors
+        if (err.message && err.message.includes("Invite code")) {
+          console.log("Invite code validation failed:", err.message);
+          return res.redirect(`/register?error=${encodeURIComponent(err.message)}`);
+        }
         return next(err);
       }
       if (!user) {
