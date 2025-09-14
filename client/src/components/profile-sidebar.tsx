@@ -2,19 +2,21 @@ import { User, Partnership } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Shield, UserX, Settings } from "lucide-react";
+import { Calendar, Shield, UserX, AlertTriangle, Settings } from "lucide-react";
 import { Link } from "wouter";
 
 interface ProfileSidebarProps {
   user: User;
   partnershipCount: number;
   onManageExclusions: () => void;
+  onReportSafety: () => void;
 }
 
 export default function ProfileSidebar({ 
   user, 
   partnershipCount, 
-  onManageExclusions
+  onManageExclusions, 
+  onReportSafety 
 }: ProfileSidebarProps) {
   const getInitials = (name: string | null) => {
     if (!name || typeof name !== 'string') {
@@ -86,6 +88,15 @@ export default function ProfileSidebar({
             >
               <UserX className="w-4 h-4 mr-2" />
               Manage Exclusions
+            </Button>
+            <Button
+              variant="outline"
+              className="w-full justify-center bg-red-100 text-red-800 hover:bg-red-200 border-red-300"
+              onClick={onReportSafety}
+              data-testid="button-report-safety"
+            >
+              <AlertTriangle className="w-4 h-4 mr-2" />
+              Report Safety Issue
             </Button>
             <Link href="/profile">
               <Button
