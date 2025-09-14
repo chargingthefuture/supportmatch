@@ -100,12 +100,6 @@ function Landing() {
             </CardContent>
           </Card>
         </div>
-
-        <div className="text-center mt-16">
-          <p className="text-gray-500 dark:text-gray-400">
-            Join thousands of users who have found their perfect match.
-          </p>
-        </div>
       </div>
     </div>
   );
