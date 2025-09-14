@@ -178,7 +178,7 @@ export default function Admin({ user }: AdminProps) {
     },
   });
 
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | null) => {
     if (!name || typeof name !== 'string') {
       return 'TU';
     }
@@ -391,34 +391,6 @@ export default function Admin({ user }: AdminProps) {
               </CardContent>
             </Card>
 
-            {/* Recent Activity Preview */}
-            <Card data-testid="card-recent-activity">
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-                <p className="text-sm text-muted-foreground">
-                  Latest system events and user actions.
-                </p>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <div className="flex items-center space-x-3 text-sm" data-testid="activity-system">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-muted-foreground">System health check completed</span>
-                    <span className="text-xs text-muted-foreground ml-auto">1h ago</span>
-                  </div>
-                  <div className="flex items-center space-x-3 text-sm" data-testid="activity-matches">
-                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                    <span className="text-muted-foreground">Monthly matches created successfully</span>
-                    <span className="text-xs text-muted-foreground ml-auto">2d ago</span>
-                  </div>
-                  <div className="flex items-center space-x-3 text-sm" data-testid="activity-report">
-                    <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
-                    <span className="text-muted-foreground">New safety report submitted</span>
-                    <span className="text-xs text-muted-foreground ml-auto">3d ago</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
 
           {/* Reports Tab */}

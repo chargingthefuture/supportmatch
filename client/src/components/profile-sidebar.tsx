@@ -18,7 +18,7 @@ export default function ProfileSidebar({
   onManageExclusions, 
   onReportSafety 
 }: ProfileSidebarProps) {
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | null) => {
     if (!name || typeof name !== 'string') {
       return 'TU';
     }
@@ -137,29 +137,6 @@ export default function ProfileSidebar({
         </CardContent>
       </Card>
 
-      {/* Recent Activity */}
-      <Card data-testid="card-recent-activity">
-        <CardContent className="p-6">
-          <h3 className="text-lg font-semibold mb-4" data-testid="heading-recent-activity">Recent Activity</h3>
-          <div className="space-y-3">
-            <div className="flex items-center space-x-3 text-sm" data-testid="activity-checkin">
-              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-              <span className="text-muted-foreground">Completed check-in</span>
-              <span className="text-xs text-muted-foreground ml-auto">2h ago</span>
-            </div>
-            <div className="flex items-center space-x-3 text-sm" data-testid="activity-message">
-              <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-              <span className="text-muted-foreground">Sent message to partner</span>
-              <span className="text-xs text-muted-foreground ml-auto">4h ago</span>
-            </div>
-            <div className="flex items-center space-x-3 text-sm" data-testid="activity-week-start">
-              <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-              <span className="text-muted-foreground">Partnership month started</span>
-              <span className="text-xs text-muted-foreground ml-auto">2d ago</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }
