@@ -1,6 +1,7 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import { validateConnection } from "./db";
 
 const app = express();
 app.use(express.json());
@@ -37,6 +38,17 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  try {
+    // Validate database connection before starting the application
+    log('Validating database connection...');
+    await validateConnection();
+    log('Database connection validated successfully');
+  } catch (error: any) {
+    log(`Failed to validate database connection: ${error.message}`);
+    log('Application startup aborted due to database connection failure');
+    process.exit(1);
+  }
+  
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

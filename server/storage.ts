@@ -1,5 +1,5 @@
 import { type User, type InsertUser, type UpsertUser, type RegisterUser, type Partnership, type Message, type InsertMessage, type Exclusion, type InsertExclusion, type Report, type InsertReport, type InviteCode, type InsertInviteCode, users, partnerships, messages, exclusions, reports, inviteCodes } from "@shared/schema";
-import { db } from "./db";
+import { db, withRetry, validateConnection } from "./db";
 import { eq, and, or, lte, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -56,31 +56,54 @@ export interface IStorage {
 export class DatabaseStorage implements IStorage {
   constructor() {
     // Seed admin user for development
-    this.seedAdminUser();
+    this.seedAdminUser().catch(error => {
+      console.error('Admin seeding failed during initialization:', error);
+      // Don't throw here to prevent app crash during startup
+    });
   }
 
   private async seedAdminUser() {
     // Only create admin if ADMIN_TOKEN environment variable is set
     const adminToken = process.env.ADMIN_TOKEN;
-    if (adminToken) {
+    if (!adminToken) {
+      console.log('[ADMIN] No ADMIN_TOKEN provided, skipping admin user seeding');
+      return;
+    }
+
+    try {
+      console.log('[ADMIN] Starting admin user seeding process...');
+      
+      // Ensure database connection is valid before seeding
+      await validateConnection();
+      
       const adminUsername = `admin_${adminToken.substring(0, 8)}`;
       
-      // Check if admin already exists
+      // Check if admin already exists (getUserByUsername already has retry logic)
       const existingAdmin = await this.getUserByUsername(adminUsername);
-      if (!existingAdmin) {
-        try {
-          await db.insert(users).values({
-            username: adminUsername,
-            name: "System Administrator",
-            gender: "prefer_not_to_say",
-            timezone: null,
-            isActive: true,
-            isAdmin: true
-          });
-        } catch (error) {
-          console.error('Failed to seed admin user:', error);
-        }
+      
+      if (existingAdmin) {
+        console.log(`[ADMIN] Admin user ${adminUsername} already exists, skipping creation`);
+        return;
       }
+
+      // Create admin user with retry logic
+      await withRetry(async () => {
+        return db.insert(users).values({
+          username: adminUsername,
+          name: "System Administrator",
+          gender: "prefer_not_to_say",
+          timezone: null,
+          isActive: true,
+          isAdmin: true
+        });
+      }, 'create admin user');
+      
+      console.log(`[ADMIN] Successfully created admin user: ${adminUsername}`);
+      
+    } catch (error: any) {
+      console.error('[ADMIN] Failed to seed admin user after retries:', error.message);
+      // Log the error but don't throw to prevent app crash
+      // In production environments, this could be reported to monitoring
     }
   }
 
@@ -90,8 +113,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
+    return await withRetry(async () => {
+      const [user] = await db.select().from(users).where(eq(users.username, username));
+      return user || undefined;
+    }, 'getUserByUsername');
   }
 
   // Replit Auth mandatory method
