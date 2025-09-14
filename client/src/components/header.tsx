@@ -1,6 +1,5 @@
 import { User } from "@shared/schema";
 import { Link, useLocation } from "wouter";
-import { authManager } from "@/lib/auth";
 import { Handshake, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -13,8 +12,7 @@ export default function Header({ user, hasActiveMatch }: HeaderProps) {
   const [location] = useLocation();
 
   const handleLogout = () => {
-    authManager.logout();
-    window.location.reload();
+    window.location.href = "/api/logout";
   };
 
   const getInitials = (name: string) => {

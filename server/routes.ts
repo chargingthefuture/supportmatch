@@ -86,7 +86,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.user.claims.sub;
       const user = await storage.getUser(userId);
-      res.json(user);
+      
+      // Map database field names to frontend expectations (camelCase)
+      const mappedUser = {
+        ...user,
+        isAdmin: user.isAdmin,
+        isActive: user.isActive,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        profileImageUrl: user.profileImageUrl,
+        contactPreference: user.contactPreference,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      };
+      
+      res.json(mappedUser);
     } catch (error) {
       console.error("Error fetching user:", error);
       res.status(500).json({ message: "Failed to fetch user" });

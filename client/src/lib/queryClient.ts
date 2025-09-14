@@ -1,5 +1,4 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
-import { authManager } from "./auth";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -15,7 +14,6 @@ export async function apiRequest(
 ): Promise<Response> {
   const headers = {
     ...(data ? { "Content-Type": "application/json" } : {}),
-    ...authManager.getAuthHeaders(),
   };
 
   const res = await fetch(url, {
@@ -34,9 +32,7 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
-      headers: authManager.getAuthHeaders(),
-    });
+    const res = await fetch(queryKey.join("/") as string);
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
       return null;
