@@ -26,6 +26,9 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  // Local auth field
+  passwordHash: varchar("password_hash"), // For local email/password auth
+  lastLoginAt: timestamp("last_login_at"),
   // Legacy/app-specific fields (nullable since not provided by Replit Auth)
   username: text("username").unique(),
   name: text("name"),
@@ -100,6 +103,29 @@ export const insertUserSchema = createInsertSchema(users).pick({
   inviteCode: z.string().min(1, "Invite code is required"),
 });
 
+// Registration schema for local auth
+export const registerUserSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters").regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Password must contain uppercase, lowercase, and number"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+  inviteCode: z.string().min(1, "Invite code is required"),
+});
+
+// Login schema for local auth
+export const loginUserSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+// Admin bootstrap schema
+export const adminBootstrapSchema = z.object({
+  email: z.string().email("Please enter a valid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters").regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Password must contain uppercase, lowercase, and number"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+});
+
 export const insertInviteCodeSchema = createInsertSchema(inviteCodes).pick({
   maxUses: true,
   expiresAt: true,
@@ -127,6 +153,10 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
 // Replit Auth types
 export type UpsertUser = typeof users.$inferInsert;
+// Local auth types
+export type RegisterUser = z.infer<typeof registerUserSchema>;
+export type LoginUser = z.infer<typeof loginUserSchema>;
+export type AdminBootstrap = z.infer<typeof adminBootstrapSchema>;
 export type Partnership = typeof partnerships.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
