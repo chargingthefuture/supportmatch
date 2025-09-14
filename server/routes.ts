@@ -514,6 +514,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/admin/partnerships", isAuthenticated, setUserId, requireAdmin, async (req, res) => {
+    try {
+      const partnerships = await storage.getAllPartnerships();
+      const partnershipsWithUsers = await Promise.all(
+        partnerships.map(async (partnership) => {
+          const user1 = await storage.getUser(partnership.user1Id);
+          const user2 = await storage.getUser(partnership.user2Id);
+          return {
+            ...partnership,
+            user1: user1 ? { id: user1.id, name: user1.name, email: user1.email } : null,
+            user2: user2 ? { id: user2.id, name: user2.name, email: user2.email } : null
+          };
+        })
+      );
+      res.json(partnershipsWithUsers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get partnerships" });
+    }
+  });
+
   app.post("/api/admin/create-matches", isAuthenticated, setUserId, requireAdmin, async (req, res) => {
     try {
       await createMonthlyMatches();

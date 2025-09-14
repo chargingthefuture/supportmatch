@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { User } from "@shared/schema";
+import { User, Partnership } from "@shared/schema";
 import Header from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,6 +61,11 @@ interface InviteCodeWithUsers {
   usedByUser: { id: string; username: string; name: string } | null;
 }
 
+interface PartnershipWithUsers extends Partnership {
+  user1: { id: string; name: string; email: string } | null;
+  user2: { id: string; name: string; email: string } | null;
+}
+
 interface AdminProps {
   user: User;
 }
@@ -86,6 +91,12 @@ export default function Admin({ user }: AdminProps) {
   const { data: inviteCodes = [], isLoading: inviteCodesLoading } = useQuery<InviteCodeWithUsers[]>({
     queryKey: ['/api/admin/invite-codes'],
     enabled: activeTab === 'invites',
+  });
+
+  // Fetch partnerships
+  const { data: partnerships = [], isLoading: partnershipsLoading } = useQuery<PartnershipWithUsers[]>({
+    queryKey: ['/api/admin/partnerships'],
+    enabled: activeTab === 'dashboard',
   });
 
   // Create matches mutation
@@ -388,6 +399,107 @@ export default function Admin({ user }: AdminProps) {
                     </div>
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Current Partnerships List */}
+            <Card data-testid="card-partnerships-list">
+              <CardHeader>
+                <CardTitle>Current Partnerships</CardTitle>
+                <p className="text-sm text-muted-foreground">
+                  Detailed list of all partnerships with start and end dates.
+                </p>
+              </CardHeader>
+              <CardContent>
+                {partnershipsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-muted-foreground">Loading partnerships...</div>
+                  </div>
+                ) : partnerships.length === 0 ? (
+                  <div className="text-center py-8">
+                    <UserCheck className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Partnerships</h3>
+                    <p className="text-muted-foreground">
+                      No partnerships have been created yet. Use "Create Monthly Matches" to start.
+                    </p>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-96">
+                    <Table data-testid="table-partnerships">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Partner 1</TableHead>
+                          <TableHead>Partner 2</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Start Date</TableHead>
+                          <TableHead>End Date</TableHead>
+                          <TableHead>Duration</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {partnerships.map((partnership) => {
+                          const startDate = new Date(partnership.startDate);
+                          const endDate = new Date(partnership.endDate);
+                          const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+                          
+                          return (
+                            <TableRow key={partnership.id} data-testid={`partnership-${partnership.id}`}>
+                              <TableCell>
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-700 text-sm font-medium">
+                                    {getInitials(partnership.user1?.name || null)}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">{partnership.user1?.name || 'Unknown User'}</p>
+                                    <p className="text-xs text-muted-foreground">{partnership.user1?.email}</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center space-x-2">
+                                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center text-green-700 text-sm font-medium">
+                                    {getInitials(partnership.user2?.name || null)}
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm">{partnership.user2?.name || 'Unknown User'}</p>
+                                    <p className="text-xs text-muted-foreground">{partnership.user2?.email}</p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant={partnership.status === 'active' ? 'default' : 'secondary'}
+                                  data-testid={`status-${partnership.id}`}
+                                >
+                                  {partnership.status}
+                                </Badge>
+                              </TableCell>
+                              <TableCell data-testid={`start-date-${partnership.id}`}>
+                                {startDate.toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric', 
+                                  year: 'numeric' 
+                                })}
+                              </TableCell>
+                              <TableCell data-testid={`end-date-${partnership.id}`}>
+                                {endDate.toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric', 
+                                  year: 'numeric' 
+                                })}
+                              </TableCell>
+                              <TableCell data-testid={`duration-${partnership.id}`}>
+                                <span className="text-sm text-muted-foreground">
+                                  {durationDays} days
+                                </span>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                )}
               </CardContent>
             </Card>
 

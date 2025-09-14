@@ -1,6 +1,6 @@
 import { type User, type InsertUser, type UpsertUser, type RegisterUser, type Partnership, type Message, type InsertMessage, type Exclusion, type InsertExclusion, type Report, type InsertReport, type InviteCode, type InsertInviteCode, users, partnerships, messages, exclusions, reports, inviteCodes } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, or, lte } from "drizzle-orm";
+import { eq, and, or, lte, desc } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -28,6 +28,7 @@ export interface IStorage {
   getUserPartnerships(userId: string): Promise<Partnership[]>;
   updatePartnership(id: string, updates: Partial<Partnership>): Promise<Partnership | undefined>;
   getPartnershipsForMatching(currentDate: Date): Promise<Partnership[]>;
+  getAllPartnerships(): Promise<Partnership[]>;
 
   // Message methods
   createMessage(senderId: string, message: InsertMessage): Promise<Message>;
@@ -277,6 +278,13 @@ export class DatabaseStorage implements IStorage {
           eq(partnerships.status, "active")
         )
       );
+  }
+
+  async getAllPartnerships(): Promise<Partnership[]> {
+    return await db
+      .select()
+      .from(partnerships)
+      .orderBy(desc(partnerships.createdAt));
   }
 
   async createMessage(senderId: string, insertMessage: InsertMessage): Promise<Message> {
