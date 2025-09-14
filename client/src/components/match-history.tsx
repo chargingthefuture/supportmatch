@@ -123,7 +123,6 @@ export default function MatchHistory({ currentUser, onExcludeUser }: MatchHistor
                   <th className="text-left py-3 font-medium">Partner</th>
                   <th className="text-left py-3 font-medium">Duration</th>
                   <th className="text-left py-3 font-medium">Status</th>
-                  <th className="text-left py-3 font-medium">Success Rate</th>
                   <th className="text-left py-3 font-medium">Actions</th>
                 </tr>
               </thead>
@@ -165,25 +164,7 @@ export default function MatchHistory({ currentUser, onExcludeUser }: MatchHistor
                         </Badge>
                       </td>
                       <td className="py-4">
-                        <div className="flex items-center space-x-2">
-                          <Progress 
-                            value={successRate} 
-                            className="w-12 h-2"
-                            data-testid={`progress-success-${partnership.id}`}
-                          />
-                          <span className="font-medium" data-testid={`text-success-rate-${partnership.id}`}>{successRate}%</span>
-                        </div>
-                      </td>
-                      <td className="py-4">
                         <div className="flex space-x-2">
-                          <Button 
-                            variant="link" 
-                            size="sm"
-                            className="text-blue-600 hover:text-blue-800 p-0 h-auto"
-                            data-testid={`button-review-${partnership.id}`}
-                          >
-                            Review
-                          </Button>
                           <Button 
                             variant="link" 
                             size="sm"

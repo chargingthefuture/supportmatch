@@ -422,7 +422,7 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                         Your messages are stored securely during partnerships
                       </p>
                     </div>
-                    <Badge variant="secondary" data-testid="badge-message-storage">Encrypted</Badge>
+                    <Badge variant="secondary" data-testid="badge-message-storage">Not Encrypted</Badge>
                   </div>
                 </div>
               </div>
