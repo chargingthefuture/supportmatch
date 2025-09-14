@@ -29,10 +29,11 @@ Preferred communication style: Simple, everyday language.
 
 ### Data Storage Solutions
 - **ORM**: Drizzle ORM for type-safe database operations and schema management
-- **Database**: PostgreSQL with Neon serverless for production scalability
+- **Database**: PostgreSQL with Neon serverless for both development and production
+- **Environment Separation**: Development and production databases with environment-scoped DATABASE_URL
 - **Schema Design**: Relational model with users, partnerships, messages, exclusions, and reports tables
 - **Migrations**: Drizzle Kit for database schema versioning and deployment
-- **Development Storage**: In-memory storage implementation for development and testing
+- **Admin Users**: Auto-seeded admin users in both environments using ADMIN_TOKEN
 
 ### Authentication and Authorization
 - **Session-based Authentication**: Custom session management using HTTP headers
