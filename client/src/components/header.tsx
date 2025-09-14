@@ -1,7 +1,9 @@
 import { User } from "@shared/schema";
 import { Link, useLocation } from "wouter";
-import { Handshake, LogOut } from "lucide-react";
+import { Handshake, LogOut, Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { useState } from "react";
 
 interface HeaderProps {
   user: User;
@@ -10,6 +12,7 @@ interface HeaderProps {
 
 export default function Header({ user, hasActiveMatch }: HeaderProps) {
   const [location] = useLocation();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     window.location.href = "/api/logout";
@@ -41,25 +44,102 @@ export default function Header({ user, hasActiveMatch }: HeaderProps) {
             </div>
           </div>
           
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            <Link href="/">
-              <a className={location === "/" ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground transition-colors"} data-testid="nav-dashboard">
-                Dashboard
-              </a>
+            <Link href="/" className={location === "/" ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground transition-colors"} data-testid="nav-dashboard">
+              Dashboard
             </Link>
-            <Link href="/profile">
-              <a className={location === "/profile" ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground transition-colors"} data-testid="nav-profile">
-                Profile
-              </a>
+            <Link href="/profile" className={location === "/profile" ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground transition-colors"} data-testid="nav-profile">
+              Profile
             </Link>
             {user.isAdmin && (
-              <Link href="/admin">
-                <a className={location === "/admin" ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground transition-colors"} data-testid="nav-admin">
-                  Admin
-                </a>
+              <Link href="/admin" className={location === "/admin" ? "text-primary font-medium" : "text-muted-foreground hover:text-foreground transition-colors"} data-testid="nav-admin">
+                Admin
               </Link>
             )}
           </nav>
+
+          {/* Mobile Navigation */}
+          <div className="md:hidden">
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+              <SheetTrigger asChild>
+                <Button variant="ghost" size="sm" data-testid="button-mobile-menu">
+                  <Menu className="w-5 h-5" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-80">
+                <div className="flex flex-col space-y-6 mt-6">
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-lg font-semibold">Navigation</h2>
+                  </div>
+                  
+                  <nav className="flex flex-col space-y-4">
+                    <Link 
+                      href="/"
+                      className={`block py-2 px-3 rounded-md transition-colors ${
+                        location === "/" 
+                          ? "bg-primary text-primary-foreground font-medium" 
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      }`} 
+                      data-testid="mobile-nav-dashboard"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Dashboard
+                    </Link>
+                    <Link 
+                      href="/profile"
+                      className={`block py-2 px-3 rounded-md transition-colors ${
+                        location === "/profile" 
+                          ? "bg-primary text-primary-foreground font-medium" 
+                          : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                      }`} 
+                      data-testid="mobile-nav-profile"
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      Profile
+                    </Link>
+                    {user.isAdmin && (
+                      <Link 
+                        href="/admin"
+                        className={`block py-2 px-3 rounded-md transition-colors ${
+                          location === "/admin" 
+                            ? "bg-primary text-primary-foreground font-medium" 
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent"
+                        }`} 
+                        data-testid="mobile-nav-admin"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                      >
+                        Admin
+                      </Link>
+                    )}
+                  </nav>
+                  
+                  <div className="pt-6 border-t border-border">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="w-10 h-10 bg-primary text-primary-foreground rounded-full flex items-center justify-center">
+                        <span className="text-sm font-medium">{getInitials(user.name || "TI User")}</span>
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{user.name || "TI User"}</p>
+                        <p className="text-xs text-muted-foreground">{user.email || "No email"}</p>
+                      </div>
+                    </div>
+                    
+                    <Button
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleLogout}
+                      className="w-full"
+                      data-testid="mobile-button-logout"
+                    >
+                      <LogOut className="w-4 h-4 mr-2" />
+                      Logout
+                    </Button>
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
 
           <div className="flex items-center space-x-4">
             {hasActiveMatch && (
@@ -69,7 +149,7 @@ export default function Header({ user, hasActiveMatch }: HeaderProps) {
               </div>
             )}
             <div className="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center" data-testid="user-avatar">
-              <span className="text-sm font-medium">{getInitials(user.name)}</span>
+              <span className="text-sm font-medium">{getInitials(user.name || "TI User")}</span>
             </div>
             <Button
               variant="ghost" 
