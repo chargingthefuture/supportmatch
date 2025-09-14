@@ -1,0 +1,142 @@
+2025-09-14 17:34:05.79
+e5118a7b
+User
+file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345
+2025-09-14 17:34:05.79
+e5118a7b
+User
+o?t(o):n(u)},"cb"),s=new r(function(o,u){n=o,t=u}).catch(o=>{throw Error.captureStackTrace(
+2025-09-14 17:34:05.79
+e5118a7b
+User
+^
+2025-09-14 17:34:05.79
+e5118a7b
+User
+2025-09-14 17:34:05.79
+e5118a7b
+User
+error: column "email" does not exist
+2025-09-14 17:34:05.79
+e5118a7b
+User
+at file:///home/runner/workspace/node_modules/@neondatabase/serverless/index.mjs:1345:74
+2025-09-14 17:34:05.79
+e5118a7b
+User
+at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+2025-09-14 17:34:05.79
+e5118a7b
+User
+at async NeonPreparedQuery.execute (file:///home/runner/workspace/node_modules/drizzle-orm/neon-serverless/session.js:76:20)
+2025-09-14 17:34:05.79
+e5118a7b
+User
+at async DatabaseStorage.getUserByUsername (file:///home/runner/workspace/dist/index.js:211:20)
+2025-09-14 17:34:05.79
+e5118a7b
+User
+at async DatabaseStorage.seedAdminUser (file:///home/runner/workspace/dist/index.js:189:29) {
+2025-09-14 17:34:05.79
+e5118a7b
+User
+length: 105,
+2025-09-14 17:34:05.79
+e5118a7b
+User
+severity: 'ERROR',
+2025-09-14 17:34:05.79
+e5118a7b
+User
+code: '42703',
+2025-09-14 17:34:05.79
+e5118a7b
+User
+detail: undefined,
+2025-09-14 17:34:05.79
+e5118a7b
+User
+hint: undefined,
+2025-09-14 17:34:05.79
+e5118a7b
+User
+position: '14',
+2025-09-14 17:34:05.79
+e5118a7b
+User
+internalPosition: undefined,
+2025-09-14 17:34:05.79
+e5118a7b
+User
+internalQuery: undefined,
+2025-09-14 17:34:05.79
+e5118a7b
+User
+where: undefined,
+2025-09-14 17:34:05.79
+e5118a7b
+User
+schema: undefined,
+2025-09-14 17:34:05.79
+e5118a7b
+User
+table: undefined,
+2025-09-14 17:34:05.79
+e5118a7b
+User
+column: undefined,
+2025-09-14 17:34:05.79
+e5118a7b
+User
+dataType: undefined,
+2025-09-14 17:34:05.79
+e5118a7b
+User
+constraint: undefined,
+2025-09-14 17:34:05.79
+e5118a7b
+User
+file: 'parse_relation.c',
+2025-09-14 17:34:05.79
+e5118a7b
+User
+line: '3722',
+2025-09-14 17:34:05.79
+e5118a7b
+User
+routine: 'errorMissingColumn'
+2025-09-14 17:34:05.79
+e5118a7b
+User
+}
+2025-09-14 17:34:05.79
+e5118a7b
+User
+2025-09-14 17:34:05.79
+e5118a7b
+User
+Node.js v20.19.3
+2025-09-14 17:34:10.49
+e5118a7b
+System
+command finished with error [npm run start]: exit status 1
+2025-09-14 17:37:42.29
+e5118a7b
+System
+command finished with error [npm run start]: exit status 1
+2025-09-14 17:41:01.98
+e5118a7b
+System
+command finished with error [npm run start]: exit status 1
+2025-09-14 17:44:48.58
+e5118a7b
+System
+command finished with error [npm run start]: exit status 1
+2025-09-14 17:47:59.49
+e5118a7b
+System
+command finished with error [npm run start]: exit status 1
+
+Wrap
+
+Colors
