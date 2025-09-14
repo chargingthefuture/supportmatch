@@ -2,7 +2,7 @@ import { User, Partnership } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, Video, AlertTriangle, Clock, MapPin, Phone } from "lucide-react";
+import { MessageCircle, AlertTriangle, Clock, MapPin, Phone } from "lucide-react";
 import { useState } from "react";
 
 interface CurrentPartnershipProps {
@@ -123,13 +123,6 @@ export default function CurrentPartnership({
                 >
                   <MessageCircle className="w-4 h-4 mr-2" />
                   Send Message
-                </Button>
-                <Button 
-                  variant="secondary"
-                  data-testid="button-schedule-checkin"
-                >
-                  <Video className="w-4 h-4 mr-2" />
-                  Schedule Check-in
                 </Button>
                 <Button 
                   variant="outline"
