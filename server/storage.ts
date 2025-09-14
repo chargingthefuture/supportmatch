@@ -1,5 +1,6 @@
-import { type User, type InsertUser, type Partnership, type Message, type InsertMessage, type Exclusion, type InsertExclusion, type Report, type InsertReport, type InviteCode, type InsertInviteCode } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { type User, type InsertUser, type Partnership, type Message, type InsertMessage, type Exclusion, type InsertExclusion, type Report, type InsertReport, type InviteCode, type InsertInviteCode, users, partnerships, messages, exclusions, reports, inviteCodes } from "@shared/schema";
+import { db } from "./db";
+import { eq, and, or, lte } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -32,266 +33,296 @@ export interface IStorage {
   updateReport(id: string, updates: Partial<Report>): Promise<Report | undefined>;
 
   // Invite code methods
-  createInviteCode(createdBy: string, inviteCode: InsertInviteCode): Promise<InviteCode>;
+  createInviteCode(createdBy: string, inviteCode: InsertInviteCode & { code: string }): Promise<InviteCode>;
   getInviteCode(code: string): Promise<InviteCode | undefined>;
   getAllInviteCodes(): Promise<InviteCode[]>;
   markInviteCodeAsUsed(code: string, usedBy: string): Promise<InviteCode | undefined>;
   deactivateInviteCode(code: string): Promise<InviteCode | undefined>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private partnerships: Map<string, Partnership>;
-  private messages: Map<string, Message>;
-  private exclusions: Map<string, Exclusion>;
-  private reports: Map<string, Report>;
-  private inviteCodes: Map<string, InviteCode>;
-
+export class DatabaseStorage implements IStorage {
   constructor() {
-    this.users = new Map();
-    this.partnerships = new Map();
-    this.messages = new Map();
-    this.exclusions = new Map();
-    this.reports = new Map();
-    this.inviteCodes = new Map();
-    
     // Seed admin user for development
     this.seedAdminUser();
   }
 
-  private seedAdminUser() {
+  private async seedAdminUser() {
     // Only create admin if ADMIN_TOKEN environment variable is set
     const adminToken = process.env.ADMIN_TOKEN;
     if (adminToken) {
-      const adminId = randomUUID();
-      const adminUser: User = {
-        id: adminId,
-        username: `admin_${adminToken.substring(0, 8)}`, // Include token prefix in username for security
-        name: "System Administrator",
-        gender: "prefer_not_to_say",
-        contactPreference: "app_only",
-        timezone: null,
-        isActive: true,
-        isAdmin: true,
-        createdAt: new Date()
-      };
-      this.users.set(adminId, adminUser);
+      const adminUsername = `admin_${adminToken.substring(0, 8)}`;
+      
+      // Check if admin already exists
+      const existingAdmin = await this.getUserByUsername(adminUsername);
+      if (!existingAdmin) {
+        try {
+          await db.insert(users).values({
+            username: adminUsername,
+            name: "System Administrator",
+            gender: "prefer_not_to_say",
+            contactPreference: "app_only",
+            timezone: null,
+            isActive: true,
+            isAdmin: true
+          });
+        } catch (error) {
+          console.error('Failed to seed admin user:', error);
+        }
+      }
     }
   }
 
   async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { 
-      ...insertUser, 
-      id, 
-      isActive: true, 
-      isAdmin: false,
-      createdAt: new Date(),
-      timezone: insertUser.timezone || null
-    };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values({
+        username: insertUser.username,
+        name: insertUser.name,
+        gender: insertUser.gender,
+        contactPreference: insertUser.contactPreference,
+        timezone: insertUser.timezone || null,
+        isActive: true,
+        isAdmin: false
+      })
+      .returning();
     return user;
   }
 
   async getAllUsers(): Promise<User[]> {
-    return Array.from(this.users.values());
+    return await db.select().from(users);
   }
 
   async updateUser(id: string, updates: Partial<User>): Promise<User | undefined> {
-    const user = this.users.get(id);
-    if (!user) return undefined;
-    
-    const updatedUser = { ...user, ...updates };
-    this.users.set(id, updatedUser);
-    return updatedUser;
+    const [user] = await db
+      .update(users)
+      .set(updates)
+      .where(eq(users.id, id))
+      .returning();
+    return user || undefined;
   }
 
   async createPartnership(user1Id: string, user2Id: string, startDate: Date, endDate: Date): Promise<Partnership> {
-    const id = randomUUID();
-    const partnership: Partnership = {
-      id,
-      user1Id,
-      user2Id,
-      startDate,
-      endDate,
-      status: "active" as const,
-      successRate: null,
-      createdAt: new Date()
-    };
-    this.partnerships.set(id, partnership);
+    const [partnership] = await db
+      .insert(partnerships)
+      .values({
+        user1Id,
+        user2Id,
+        startDate,
+        endDate,
+        status: "active",
+        successRate: null
+      })
+      .returning();
     return partnership;
   }
 
   async getPartnership(id: string): Promise<Partnership | undefined> {
-    return this.partnerships.get(id);
+    const [partnership] = await db.select().from(partnerships).where(eq(partnerships.id, id));
+    return partnership || undefined;
   }
 
   async getActivePartnershipForUser(userId: string): Promise<Partnership | undefined> {
-    return Array.from(this.partnerships.values()).find(
-      (partnership) => 
-        partnership.status === "active" && 
-        (partnership.user1Id === userId || partnership.user2Id === userId)
-    );
+    const [partnership] = await db
+      .select()
+      .from(partnerships)
+      .where(
+        and(
+          eq(partnerships.status, "active"),
+          or(
+            eq(partnerships.user1Id, userId),
+            eq(partnerships.user2Id, userId)
+          )
+        )
+      );
+    return partnership || undefined;
   }
 
   async getUserPartnerships(userId: string): Promise<Partnership[]> {
-    return Array.from(this.partnerships.values()).filter(
-      (partnership) => 
-        partnership.user1Id === userId || partnership.user2Id === userId
-    ).sort((a, b) => b.createdAt!.getTime() - a.createdAt!.getTime());
+    return await db
+      .select()
+      .from(partnerships)
+      .where(
+        or(
+          eq(partnerships.user1Id, userId),
+          eq(partnerships.user2Id, userId)
+        )
+      )
+      .orderBy(partnerships.createdAt);
   }
 
   async updatePartnership(id: string, updates: Partial<Partnership>): Promise<Partnership | undefined> {
-    const partnership = this.partnerships.get(id);
-    if (!partnership) return undefined;
-    
-    const updatedPartnership = { ...partnership, ...updates };
-    this.partnerships.set(id, updatedPartnership);
-    return updatedPartnership;
+    const [partnership] = await db
+      .update(partnerships)
+      .set(updates)
+      .where(eq(partnerships.id, id))
+      .returning();
+    return partnership || undefined;
   }
 
   async getPartnershipsForMatching(currentDate: Date): Promise<Partnership[]> {
-    return Array.from(this.partnerships.values()).filter(
-      (partnership) => partnership.endDate <= currentDate && partnership.status === "active"
-    );
+    return await db
+      .select()
+      .from(partnerships)
+      .where(
+        and(
+          lte(partnerships.endDate, currentDate),
+          eq(partnerships.status, "active")
+        )
+      );
   }
 
   async createMessage(senderId: string, insertMessage: InsertMessage): Promise<Message> {
-    const id = randomUUID();
-    const message: Message = {
-      ...insertMessage,
-      id,
-      senderId,
-      createdAt: new Date()
-    };
-    this.messages.set(id, message);
+    const [message] = await db
+      .insert(messages)
+      .values({
+        partnershipId: insertMessage.partnershipId,
+        senderId,
+        content: insertMessage.content
+      })
+      .returning();
     return message;
   }
 
   async getPartnershipMessages(partnershipId: string): Promise<Message[]> {
-    return Array.from(this.messages.values())
-      .filter((message) => message.partnershipId === partnershipId)
-      .sort((a, b) => a.createdAt!.getTime() - b.createdAt!.getTime());
+    return await db
+      .select()
+      .from(messages)
+      .where(eq(messages.partnershipId, partnershipId))
+      .orderBy(messages.createdAt);
   }
 
   async createExclusion(userId: string, insertExclusion: InsertExclusion): Promise<Exclusion> {
-    const id = randomUUID();
-    const exclusion: Exclusion = {
-      ...insertExclusion,
-      id,
-      userId,
-      createdAt: new Date(),
-      reason: insertExclusion.reason || null
-    };
-    this.exclusions.set(id, exclusion);
+    const [exclusion] = await db
+      .insert(exclusions)
+      .values({
+        userId,
+        excludedUserId: insertExclusion.excludedUserId,
+        reason: insertExclusion.reason || null
+      })
+      .returning();
     return exclusion;
   }
 
   async getUserExclusions(userId: string): Promise<Exclusion[]> {
-    return Array.from(this.exclusions.values()).filter(
-      (exclusion) => exclusion.userId === userId
-    );
+    return await db
+      .select()
+      .from(exclusions)
+      .where(eq(exclusions.userId, userId));
   }
 
   async isUserExcluded(userId: string, potentialPartnerId: string): Promise<boolean> {
-    const exclusions = await this.getUserExclusions(userId);
-    return exclusions.some((exclusion) => exclusion.excludedUserId === potentialPartnerId);
+    const [exclusion] = await db
+      .select()
+      .from(exclusions)
+      .where(
+        and(
+          eq(exclusions.userId, userId),
+          eq(exclusions.excludedUserId, potentialPartnerId)
+        )
+      );
+    return !!exclusion;
   }
 
   async createReport(reporterId: string, insertReport: InsertReport): Promise<Report> {
-    const id = randomUUID();
-    const report: Report = {
-      ...insertReport,
-      id,
-      reporterId,
-      status: "pending" as const,
-      createdAt: new Date(),
-      description: insertReport.description || null,
-      partnershipId: insertReport.partnershipId || null
-    };
-    this.reports.set(id, report);
+    const [report] = await db
+      .insert(reports)
+      .values({
+        reporterId,
+        reportedUserId: insertReport.reportedUserId,
+        partnershipId: insertReport.partnershipId || null,
+        reason: insertReport.reason,
+        description: insertReport.description || null,
+        status: "pending"
+      })
+      .returning();
     return report;
   }
 
   async getAllReports(): Promise<Report[]> {
-    return Array.from(this.reports.values()).sort((a, b) => 
-      b.createdAt!.getTime() - a.createdAt!.getTime()
-    );
+    return await db
+      .select()
+      .from(reports)
+      .orderBy(reports.createdAt);
   }
 
   async updateReport(id: string, updates: Partial<Report>): Promise<Report | undefined> {
-    const report = this.reports.get(id);
-    if (!report) return undefined;
-    
-    const updatedReport = { ...report, ...updates };
-    this.reports.set(id, updatedReport);
-    return updatedReport;
+    const [report] = await db
+      .update(reports)
+      .set(updates)
+      .where(eq(reports.id, id))
+      .returning();
+    return report || undefined;
   }
 
-  async createInviteCode(createdBy: string, insertInviteCode: InsertInviteCode): Promise<InviteCode> {
-    const id = randomUUID();
-    const inviteCode: InviteCode = {
-      ...insertInviteCode,
-      id,
-      createdBy,
-      usedBy: null,
-      isActive: true,
-      maxUses: insertInviteCode.maxUses || "1",
-      currentUses: "0",
-      expiresAt: insertInviteCode.expiresAt || null,
-      createdAt: new Date(),
-      usedAt: null
-    };
-    this.inviteCodes.set(insertInviteCode.code, inviteCode);
+  async createInviteCode(createdBy: string, insertInviteCode: InsertInviteCode & { code: string }): Promise<InviteCode> {
+    const [inviteCode] = await db
+      .insert(inviteCodes)
+      .values({
+        code: insertInviteCode.code,
+        createdBy,
+        usedBy: null,
+        isActive: true,
+        maxUses: insertInviteCode.maxUses || "1",
+        currentUses: "0",
+        expiresAt: insertInviteCode.expiresAt || null,
+        usedAt: null
+      })
+      .returning();
     return inviteCode;
   }
 
   async getInviteCode(code: string): Promise<InviteCode | undefined> {
-    return this.inviteCodes.get(code);
+    const [inviteCode] = await db.select().from(inviteCodes).where(eq(inviteCodes.code, code));
+    return inviteCode || undefined;
   }
 
   async getAllInviteCodes(): Promise<InviteCode[]> {
-    return Array.from(this.inviteCodes.values()).sort((a, b) => 
-      b.createdAt!.getTime() - a.createdAt!.getTime()
-    );
+    return await db
+      .select()
+      .from(inviteCodes)
+      .orderBy(inviteCodes.createdAt);
   }
 
   async markInviteCodeAsUsed(code: string, usedBy: string): Promise<InviteCode | undefined> {
-    const inviteCode = this.inviteCodes.get(code);
+    const inviteCode = await this.getInviteCode(code);
     if (!inviteCode) return undefined;
     
     const currentUses = parseInt(inviteCode.currentUses || "0") + 1;
     const maxUses = parseInt(inviteCode.maxUses || "1");
     
-    const updatedInviteCode = { 
-      ...inviteCode, 
-      usedBy,
-      currentUses: currentUses.toString(),
-      usedAt: new Date(),
-      isActive: currentUses < maxUses // Deactivate if max uses reached
-    };
-    this.inviteCodes.set(code, updatedInviteCode);
-    return updatedInviteCode;
+    const [updatedInviteCode] = await db
+      .update(inviteCodes)
+      .set({
+        usedBy,
+        currentUses: currentUses.toString(),
+        usedAt: new Date(),
+        isActive: currentUses < maxUses
+      })
+      .where(eq(inviteCodes.code, code))
+      .returning();
+    
+    return updatedInviteCode || undefined;
   }
 
   async deactivateInviteCode(code: string): Promise<InviteCode | undefined> {
-    const inviteCode = this.inviteCodes.get(code);
-    if (!inviteCode) return undefined;
+    const [inviteCode] = await db
+      .update(inviteCodes)
+      .set({ isActive: false })
+      .where(eq(inviteCodes.code, code))
+      .returning();
     
-    const updatedInviteCode = { ...inviteCode, isActive: false };
-    this.inviteCodes.set(code, updatedInviteCode);
-    return updatedInviteCode;
+    return inviteCode || undefined;
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
