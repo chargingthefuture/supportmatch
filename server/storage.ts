@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type UpsertUser, type Partnership, type Message, type InsertMessage, type Exclusion, type InsertExclusion, type Report, type InsertReport, type InviteCode, type InsertInviteCode, users, partnerships, messages, exclusions, reports, inviteCodes } from "@shared/schema";
+import { type User, type InsertUser, type UpsertUser, type RegisterUser, type Partnership, type Message, type InsertMessage, type Exclusion, type InsertExclusion, type Report, type InsertReport, type InviteCode, type InsertInviteCode, users, partnerships, messages, exclusions, reports, inviteCodes } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, or, lte } from "drizzle-orm";
 
@@ -7,6 +7,14 @@ export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   // Replit Auth mandatory method
   upsertUser(user: UpsertUser): Promise<User>;
+  // Local auth methods
+  findUserByEmail(email: string): Promise<User | undefined>;
+  createLocalUser(userData: { email: string; passwordHash: string; firstName: string; lastName: string }): Promise<User>;
+  recordLogin(userId: string): Promise<void>;
+  setAdmin(userId: string, isAdmin: boolean): Promise<User | undefined>;
+  // Invite code methods for local auth
+  verifyInvite(code: string): Promise<{ valid: boolean; reason?: string }>;
+  consumeInvite(code: string, userId: string): Promise<InviteCode | undefined>;
   // Legacy methods
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
@@ -134,6 +142,73 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id))
       .returning();
     return user || undefined;
+  }
+
+  // Local auth methods
+  async findUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user || undefined;
+  }
+
+  async createLocalUser(userData: { email: string; passwordHash: string; firstName: string; lastName: string }): Promise<User> {
+    const [user] = await db
+      .insert(users)
+      .values({
+        email: userData.email,
+        passwordHash: userData.passwordHash,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        isActive: true,
+        isAdmin: false,
+        lastLoginAt: new Date(),
+      })
+      .returning();
+    return user;
+  }
+
+  async recordLogin(userId: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ lastLoginAt: new Date() })
+      .where(eq(users.id, userId));
+  }
+
+  async setAdmin(userId: string, isAdmin: boolean): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ isAdmin })
+      .where(eq(users.id, userId))
+      .returning();
+    return user || undefined;
+  }
+
+  async verifyInvite(code: string): Promise<{ valid: boolean; reason?: string }> {
+    const inviteCode = await this.getInviteCode(code);
+    
+    if (!inviteCode) {
+      return { valid: false, reason: "Invalid invite code" };
+    }
+    
+    if (!inviteCode.isActive) {
+      return { valid: false, reason: "Invite code has been deactivated" };
+    }
+    
+    if (inviteCode.expiresAt && new Date() > inviteCode.expiresAt) {
+      return { valid: false, reason: "Invite code has expired" };
+    }
+    
+    const currentUses = parseInt(inviteCode.currentUses || "0");
+    const maxUses = parseInt(inviteCode.maxUses || "1");
+    
+    if (currentUses >= maxUses) {
+      return { valid: false, reason: "Invite code has reached maximum uses" };
+    }
+    
+    return { valid: true };
+  }
+
+  async consumeInvite(code: string, userId: string): Promise<InviteCode | undefined> {
+    return await this.markInviteCodeAsUsed(code, userId);
   }
 
   async createPartnership(user1Id: string, user2Id: string, startDate: Date, endDate: Date): Promise<Partnership> {
