@@ -16,8 +16,7 @@ function Landing() {
             Support Match
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-             for collaboration, 
-            friendship, and shared experiences in a safe and welcoming community.
+            Match with TIs for collaboration, friendship, and shared experiences in a welcoming community.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
@@ -82,7 +81,7 @@ function Landing() {
             </CardHeader>
             <CardContent>
               <CardDescription className="text-gray-600 dark:text-gray-300">
-                Our intelligent algorithm connects you with compatible partners based on shared interests and values.
+                Our intelligent algorithm connects you with compatible TIs based on shared interests and values.
               </CardDescription>
             </CardContent>
           </Card>
@@ -96,7 +95,7 @@ function Landing() {
             </CardHeader>
             <CardContent>
               <CardDescription className="text-gray-600 dark:text-gray-300">
-                Coordinate meetings and activities with built-in scheduling tools and calendar integration.
+                Coordinate meetings and activities with built-in chat.
               </CardDescription>
             </CardContent>
           </Card>
@@ -104,7 +103,7 @@ function Landing() {
 
         <div className="text-center mt-16">
           <p className="text-gray-500 dark:text-gray-400">
-            Join thousands of users who have found their perfect match
+            Join thousands of users who have found their perfect match.
           </p>
         </div>
       </div>
