@@ -40,6 +40,7 @@ export function getSession() {
     cookie: {
       httpOnly: true,
       secure: true,
+      sameSite: 'lax', // CSRF protection
       maxAge: sessionTtl,
     },
   });
@@ -110,9 +111,29 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/callback", (req, res, next) => {
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
+    passport.authenticate(`replitauth:${req.hostname}`, (err, user, info) => {
+      if (err) {
+        return next(err);
+      }
+      if (!user) {
+        return res.redirect("/api/login");
+      }
+      
+      // Regenerate session for security (prevent session fixation)
+      req.session.regenerate((regenerateErr) => {
+        if (regenerateErr) {
+          console.error("Session regeneration error:", regenerateErr);
+          return next(regenerateErr);
+        }
+        
+        // Log in the user after session regeneration
+        req.logIn(user, (loginErr) => {
+          if (loginErr) {
+            return next(loginErr);
+          }
+          return res.redirect("/");
+        });
+      });
     })(req, res, next);
   });
 

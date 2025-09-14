@@ -1,15 +1,45 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertMessageSchema, insertExclusionSchema, insertReportSchema, insertInviteCodeSchema } from "@shared/schema";
+import { insertUserSchema, insertMessageSchema, insertExclusionSchema, insertReportSchema, insertInviteCodeSchema, registerUserSchema, loginUserSchema, adminBootstrapSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
+import bcrypt from "bcryptjs";
+import rateLimit from "express-rate-limit";
 
 // Legacy session tracking for backward compatibility during migration
 const sessions = new Map<string, string>();
 
 function generateSession(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
+}
+
+// Rate limiting for auth endpoints
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // Limit each IP to 5 requests per windowMs
+  message: {
+    message: "Too many authentication attempts, please try again later."
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // Limit each IP to 3 admin bootstrap attempts per windowMs
+  message: {
+    message: "Too many admin bootstrap attempts, please try again later."
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+// Security helper: Remove sensitive fields from user objects
+function sanitizeUser(user: any) {
+  if (!user) return null;
+  const { passwordHash, ...sanitized } = user;
+  return sanitized;
 }
 
 // Middleware to set req.userId from either Replit Auth claims or local session
@@ -89,14 +119,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   await setupAuth(app);
   
   // Replit Auth routes
-  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+  app.get('/api/auth/user', isAuthenticated, setUserId, async (req: any, res) => {
     try {
-      const userId = req.user.claims.sub;
+      const userId = req.userId;
+      if (!userId) {
+        return res.status(401).json({ message: "User ID not found" });
+      }
       const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
       
-      // Map database field names to frontend expectations (camelCase)
+      // Map database field names to frontend expectations (camelCase) and sanitize
       const mappedUser = {
-        ...user,
+        ...sanitizeUser(user),
         isAdmin: user.isAdmin,
         isActive: user.isActive,
         firstName: user.firstName,
@@ -114,33 +150,186 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // SECURITY: Legacy auth endpoints DISABLED - all auth now through Replit Auth
-  app.post("/api/auth/register", (req, res) => {
-    res.status(410).json({ 
-      message: "Legacy registration disabled. Please use Replit Auth.", 
-      loginUrl: "/api/login" 
-    });
+  // Local authentication endpoints
+  app.post("/api/auth/register", authLimiter, async (req, res) => {
+    try {
+      // Validate request body
+      const userData = registerUserSchema.parse(req.body);
+      
+      // Check if user already exists
+      const existingUser = await storage.findUserByEmail(userData.email);
+      if (existingUser) {
+        return res.status(400).json({ message: "User with this email already exists" });
+      }
+      
+      // Verify invite code
+      const inviteVerification = await storage.verifyInvite(userData.inviteCode);
+      if (!inviteVerification.valid) {
+        return res.status(400).json({ message: inviteVerification.reason });
+      }
+      
+      // Hash password
+      const passwordHash = await bcrypt.hash(userData.password, 12);
+      
+      // Create user
+      const user = await storage.createLocalUser({
+        email: userData.email,
+        passwordHash,
+        firstName: userData.firstName,
+        lastName: userData.lastName
+      });
+      
+      // Consume invite code
+      await storage.consumeInvite(userData.inviteCode, user.id);
+      
+      // Start local session with regeneration for security
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error("Session regeneration error:", err);
+          return res.status(500).json({ message: "Registration failed" });
+        }
+        (req.session as any).userId = user.id;
+        
+        // Return sanitized user data
+        res.status(201).json(sanitizeUser(user));
+      });
+      
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid input", 
+          errors: error.errors.map(e => `${e.path.join('.')}: ${e.message}`) 
+        });
+      }
+      console.error("Registration error:", error);
+      res.status(500).json({ message: "Registration failed" });
+    }
   });
 
-  app.post("/api/auth/login", (req, res) => {
-    res.status(410).json({ 
-      message: "Legacy login disabled. Please use Replit Auth.", 
-      loginUrl: "/api/login" 
-    });
+  app.post("/api/auth/login", authLimiter, async (req, res) => {
+    try {
+      // Validate request body
+      const loginData = loginUserSchema.parse(req.body);
+      
+      // Find user by email
+      const user = await storage.findUserByEmail(loginData.email);
+      if (!user || !user.passwordHash) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      // Verify password
+      const isPasswordValid = await bcrypt.compare(loginData.password, user.passwordHash);
+      if (!isPasswordValid) {
+        return res.status(401).json({ message: "Invalid email or password" });
+      }
+      
+      // Check if user is active
+      if (!user.isActive) {
+        return res.status(401).json({ message: "Account has been deactivated" });
+      }
+      
+      // Record login
+      await storage.recordLogin(user.id);
+      
+      // Start local session with regeneration for security
+      req.session.regenerate((err) => {
+        if (err) {
+          console.error("Session regeneration error:", err);
+          return res.status(500).json({ message: "Login failed" });
+        }
+        (req.session as any).userId = user.id;
+        
+        // Return sanitized user data
+        res.json(sanitizeUser(user));
+      });
+      
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid input", 
+          errors: error.errors.map(e => `${e.path.join('.')}: ${e.message}`) 
+        });
+      }
+      console.error("Login error:", error);
+      res.status(500).json({ message: "Login failed" });
+    }
   });
 
   app.post("/api/auth/logout", (req, res) => {
-    res.status(410).json({ 
-      message: "Legacy logout disabled. Please use Replit Auth.", 
-      logoutUrl: "/api/logout" 
-    });
+    // Clear local session
+    if (req.session) {
+      req.session.destroy((err) => {
+        if (err) {
+          console.error("Session destruction error:", err);
+          return res.status(500).json({ message: "Logout failed" });
+        }
+        res.json({ message: "Logged out successfully" });
+      });
+    } else {
+      res.json({ message: "Already logged out" });
+    }
+  });
+
+  // Admin bootstrap endpoint for creating initial admin account
+  app.post("/api/admin/bootstrap", adminLimiter, async (req, res) => {
+    try {
+      // Check for admin setup token
+      const adminToken = req.headers.authorization?.replace('Bearer ', '');
+      if (!adminToken || adminToken !== process.env.ADMIN_SETUP_TOKEN) {
+        return res.status(401).json({ message: "Invalid admin setup token" });
+      }
+
+      // Validate request body
+      const adminData = adminBootstrapSchema.parse(req.body);
+      
+      // Check if user already exists
+      let user = await storage.findUserByEmail(adminData.email);
+      
+      if (user) {
+        // User exists, just make them admin
+        user = await storage.setAdmin(user.id, true);
+        return res.json({ 
+          message: "User promoted to admin", 
+          user: { id: user!.id, email: user!.email, isAdmin: user!.isAdmin } 
+        });
+      }
+      
+      // Hash password
+      const passwordHash = await bcrypt.hash(adminData.password, 12);
+      
+      // Create new admin user
+      user = await storage.createLocalUser({
+        email: adminData.email,
+        passwordHash,
+        firstName: adminData.firstName,
+        lastName: adminData.lastName
+      });
+      
+      // Set admin privileges
+      user = await storage.setAdmin(user.id, true);
+      
+      res.status(201).json({ 
+        message: "Admin account created successfully", 
+        user: { id: user!.id, email: user!.email, isAdmin: user!.isAdmin } 
+      });
+      
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid input", 
+          errors: error.errors.map(e => `${e.path.join('.')}: ${e.message}`) 
+        });
+      }
+      console.error("Admin bootstrap error:", error);
+      res.status(500).json({ message: "Admin bootstrap failed" });
+    }
   });
 
   // User routes
   app.get("/api/users/me", isAuthenticated, setUserId, async (req: any, res: any) => {
     try {
       const user = await storage.getUser(req.userId);
-      res.json(user);
+      res.json(sanitizeUser(user));
     } catch (error) {
       res.status(500).json({ message: "Failed to get user" });
     }
