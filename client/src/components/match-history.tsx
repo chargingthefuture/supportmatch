@@ -91,7 +91,8 @@ export default function MatchHistory({ currentUser, onExcludeUser }: MatchHistor
     }
   };
 
-  const formatGender = (gender: string) => {
+  const formatGender = (gender: string | null) => {
+    if (!gender) return 'Not specified';
     return gender.charAt(0).toUpperCase() + gender.slice(1).replace('_', ' ');
   };
 

@@ -111,7 +111,8 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
     await updateProfile.mutateAsync(values);
   };
 
-  const formatGender = (gender: string) => {
+  const formatGender = (gender: string | null) => {
+    if (!gender) return 'Not specified';
     return gender.charAt(0).toUpperCase() + gender.slice(1).replace('_', ' ');
   };
 

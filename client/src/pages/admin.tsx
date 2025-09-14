@@ -190,7 +190,8 @@ export default function Admin({ user }: AdminProps) {
       .slice(0, 2);
   };
 
-  const formatGender = (gender: string) => {
+  const formatGender = (gender: string | null) => {
+    if (!gender) return 'Not specified';
     return gender.charAt(0).toUpperCase() + gender.slice(1).replace('_', ' ');
   };
 
