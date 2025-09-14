@@ -24,6 +24,11 @@ export default function MatchHistory({ currentUser, onExcludeUser }: MatchHistor
     queryKey: ['/api/partnerships/history'],
   });
 
+  // Fetch user's exclusions to show visual feedback
+  const { data: exclusions = [] } = useQuery<any[]>({
+    queryKey: ['/api/exclusions'],
+  });
+
   const getInitials = (name: string) => {
     if (!name || typeof name !== 'string') {
       return 'TU';
@@ -99,14 +104,6 @@ export default function MatchHistory({ currentUser, onExcludeUser }: MatchHistor
   return (
     <Card className="mt-8" data-testid="card-match-history">
       <CardContent className="p-6">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold" data-testid="heading-partnership-history">Partnership History</h2>
-          <Button variant="outline" data-testid="button-export-history">
-            <Download className="w-4 h-4 mr-2" />
-            Export History
-          </Button>
-        </div>
-
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-muted-foreground">Loading partnership history...</div>
@@ -134,13 +131,14 @@ export default function MatchHistory({ currentUser, onExcludeUser }: MatchHistor
                 {partnerships.map(({ partnership, partner }) => {
                   const successRate = getSuccessRate(partnership);
                   const isExcluding = excludingUserId === partner.id;
+                  const isExcluded = exclusions.some((exclusion: any) => exclusion.excludedUserId === partner.id);
                   
                   return (
                     <tr key={partnership.id} data-testid={`row-partnership-${partnership.id}`}>
                       <td className="py-4">
                         <div className="flex items-center space-x-3">
                           <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center text-white text-sm font-medium" data-testid={`avatar-partner-${partner.id}`}>
-                            {getInitials(partner.name)}
+                            {getInitials(partner.name || 'TU')}
                           </div>
                           <div>
                             <p className="font-medium" data-testid={`text-partner-name-${partner.id}`}>{partner.name}</p>
@@ -189,12 +187,15 @@ export default function MatchHistory({ currentUser, onExcludeUser }: MatchHistor
                           <Button 
                             variant="link" 
                             size="sm"
-                            className="text-red-600 hover:text-red-800 p-0 h-auto"
-                            onClick={() => handleExclude(partner.id)}
-                            disabled={isExcluding}
+                            className={isExcluded 
+                              ? "text-gray-400 p-0 h-auto cursor-default" 
+                              : "text-red-600 hover:text-red-800 p-0 h-auto"
+                            }
+                            onClick={() => !isExcluded && handleExclude(partner.id)}
+                            disabled={isExcluding || isExcluded}
                             data-testid={`button-exclude-${partnership.id}`}
                           >
-                            {isExcluding ? "Excluding..." : "Exclude"}
+                            {isExcluded ? "Excluded" : isExcluding ? "Excluding..." : "Exclude"}
                           </Button>
                         </div>
                       </td>

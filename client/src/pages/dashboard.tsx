@@ -54,11 +54,17 @@ export default function Dashboard({ user }: DashboardProps) {
       queryClient.invalidateQueries({ queryKey: ['/api/partnerships/history'] });
     },
     onError: (error: any) => {
+      const message = error.message || "Failed to exclude user";
+      const isAlreadyExcluded = error.message === "User is already excluded";
+      
       toast({
-        title: "Error",
-        description: error.message || "Failed to exclude user",
-        variant: "destructive",
+        title: isAlreadyExcluded ? "Already Excluded" : "Error",
+        description: isAlreadyExcluded ? "This user has already been excluded." : message,
+        variant: isAlreadyExcluded ? "default" : "destructive",
       });
+      
+      // Invalidate exclusions query to refresh the UI
+      queryClient.invalidateQueries({ queryKey: ['/api/exclusions'] });
     },
   });
 

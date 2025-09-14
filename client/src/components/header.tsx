@@ -39,8 +39,8 @@ export default function Header({ user, hasActiveMatch }: HeaderProps) {
               <Handshake className="text-xl" />
             </div>
             <div>
-              <h1 className="text-xl font-semibold" data-testid="app-title">TI Partners</h1>
-              <p className="text-xs text-muted-foreground">Safe Accountability Network</p>
+              <h1 className="text-xl font-semibold" data-testid="app-title">Support Match</h1>
+              <p className="text-xs text-muted-foreground">TI Accountability Network</p>
             </div>
           </div>
           

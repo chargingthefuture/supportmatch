@@ -448,6 +448,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/exclusions", isAuthenticated, setUserId, async (req: any, res: any) => {
     try {
       const exclusionData = insertExclusionSchema.parse(req.body);
+      
+      // Check if exclusion already exists to prevent duplicates
+      const existingExclusion = await storage.isUserExcluded(req.userId, exclusionData.excludedUserId);
+      if (existingExclusion) {
+        return res.status(409).json({ message: "User is already excluded" });
+      }
+      
       const exclusion = await storage.createExclusion(req.userId, exclusionData);
       res.json(exclusion);
     } catch (error) {

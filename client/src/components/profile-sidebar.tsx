@@ -83,23 +83,6 @@ export default function ProfileSidebar({
         </CardContent>
       </Card>
 
-      {/* Next Partnership */}
-      <Card data-testid="card-next-partnership">
-        <CardContent className="p-6">
-          <h3 className="text-lg font-semibold mb-4" data-testid="heading-next-partnership">Next Partnership</h3>
-          <div className="text-center py-6">
-            <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
-              <Calendar className="text-2xl text-muted-foreground" />
-            </div>
-            <p className="text-sm text-muted-foreground mb-2">Matching in progress...</p>
-            <p className="text-lg font-semibold" data-testid="text-next-match-timing">Next month</p>
-            <Badge variant="secondary" className="mt-3" data-testid="badge-matching-status">
-              Based on your preferences
-            </Badge>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Safety Tools */}
       <Card data-testid="card-safety-tools">
         <CardContent className="p-6">

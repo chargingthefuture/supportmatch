@@ -91,7 +91,7 @@ function Register() {
             </div>
           </div>
           <CardTitle className="text-2xl text-center text-gray-900 dark:text-white">
-            Join TI Partners
+            Join Support Match
           </CardTitle>
           <CardDescription className="text-center text-gray-600 dark:text-gray-300">
             Create your account to start building meaningful partnerships
