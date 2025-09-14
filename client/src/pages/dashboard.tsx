@@ -114,11 +114,8 @@ export default function Dashboard({ user }: DashboardProps) {
   };
 
   const handleManageExclusions = () => {
-    // This could open a modal or navigate to exclusions page
-    toast({
-      title: "Exclusion Management",
-      description: "Exclusion management interface would open here.",
-    });
+    // Navigate to profile page with exclusions tab
+    window.location.href = '/profile?tab=exclusions';
   };
 
   const handleReportSafety = () => {

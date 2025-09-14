@@ -462,6 +462,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.delete("/api/exclusions/:id", isAuthenticated, setUserId, async (req: any, res: any) => {
+    try {
+      await storage.removeExclusion(req.params.id);
+      res.json({ message: "Exclusion removed successfully" });
+    } catch (error) {
+      res.status(400).json({ message: "Failed to remove exclusion" });
+    }
+  });
+
   // Report routes
   app.post("/api/reports", isAuthenticated, setUserId, async (req: any, res: any) => {
     try {

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -38,6 +38,15 @@ interface ExclusionWithUser {
 export default function Profile({ user, onUserUpdate }: ProfileProps) {
   const [activeSection, setActiveSection] = useState<'profile' | 'exclusions' | 'privacy'>('profile');
   const { toast } = useToast();
+
+  // Check for tab parameter in URL on component mount
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get('tab');
+    if (tab === 'exclusions' || tab === 'privacy') {
+      setActiveSection(tab);
+    }
+  }, []);
 
   const form = useForm<z.infer<typeof updateProfileSchema>>({
     resolver: zodResolver(updateProfileSchema),

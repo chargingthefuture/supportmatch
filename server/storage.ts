@@ -38,6 +38,7 @@ export interface IStorage {
   createExclusion(userId: string, exclusion: InsertExclusion): Promise<Exclusion>;
   getUserExclusions(userId: string): Promise<Exclusion[]>;
   isUserExcluded(userId: string, potentialPartnerId: string): Promise<boolean>;
+  removeExclusion(exclusionId: string): Promise<void>;
 
   // Report methods
   createReport(reporterId: string, report: InsertReport): Promise<Report>;
@@ -337,6 +338,12 @@ export class DatabaseStorage implements IStorage {
         )
       );
     return !!exclusion;
+  }
+
+  async removeExclusion(exclusionId: string): Promise<void> {
+    await db
+      .delete(exclusions)
+      .where(eq(exclusions.id, exclusionId));
   }
 
   async createReport(reporterId: string, insertReport: InsertReport): Promise<Report> {
