@@ -41,7 +41,7 @@ Preferred communication style: Simple, everyday language.
 - **Session Persistence**: Local storage for client-side session management
 
 ### Matching Algorithm
-- **Partnership Creation**: Automated monthly matching based on user preferences and availability
+- **Partnership Creation**: Manual monthly matching based on user preferences and availability
 - **Exclusion System**: User-controlled blocking mechanism to prevent unwanted matches
 - **Gender Preferences**: Configurable matching based on gender identity and preferences
 - **Active Status Filtering**: Only matches users who are currently active in the system

@@ -179,7 +179,7 @@ export default function Dashboard({ user }: DashboardProps) {
                 </div>
                 <h3 className="text-xl font-semibold mb-2">No Active Partnership</h3>
                 <p className="text-muted-foreground mb-4">
-                  You'll be matched with an accountability partner at the beginning of next month.
+                  You'll be matched with an accountability partner when new matches are created.
                 </p>
                 <p className="text-sm text-muted-foreground">
                   Matching is based on your gender preferences and safety settings.

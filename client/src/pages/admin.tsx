@@ -937,9 +937,9 @@ export default function Admin({ user }: AdminProps) {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between p-4 border border-border rounded-lg">
                     <div>
-                      <p className="font-medium">Automatic Monthly Matching</p>
+                      <p className="font-medium">Monthly Matching System</p>
                       <p className="text-sm text-muted-foreground">
-                        Automatically create new matches at the beginning of each month
+                        Manual monthly match creation available via admin controls
                       </p>
                     </div>
                     <Badge variant="default" data-testid="setting-auto-matching">
