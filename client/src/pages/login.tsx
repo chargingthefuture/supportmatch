@@ -37,10 +37,7 @@ function Login() {
 
   const loginMutation = useMutation({
     mutationFn: (data: LoginFormData) => 
-      apiRequest("/api/auth/login", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+      apiRequest("POST", "/api/auth/login", data),
     onSuccess: () => {
       toast({
         title: "Welcome back!",

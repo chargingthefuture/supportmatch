@@ -50,10 +50,7 @@ function Register() {
 
   const registerMutation = useMutation({
     mutationFn: (data: Omit<RegisterFormData, 'confirmPassword'>) => 
-      apiRequest("/api/auth/register", {
-        method: "POST",
-        body: JSON.stringify(data),
-      }),
+      apiRequest("POST", "/api/auth/register", data),
     onSuccess: () => {
       toast({
         title: "Registration successful!",
