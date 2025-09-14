@@ -3,28 +3,31 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertMessageSchema, insertExclusionSchema, insertReportSchema, insertInviteCodeSchema } from "@shared/schema";
 import { z } from "zod";
+import { setupAuth, isAuthenticated } from "./replitAuth";
 
-// Simple session tracking
+// Legacy session tracking for backward compatibility during migration
 const sessions = new Map<string, string>();
 
 function generateSession(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
-function requireAuth(req: any, res: any, next: any) {
-  const sessionId = req.headers['x-session-id'] as string;
-  const userId = sessions.get(sessionId);
-  
+// Middleware to set req.userId from Replit Auth claims for legacy compatibility
+function setUserId(req: any, res: any, next: any) {
+  if (req.user?.claims?.sub) {
+    req.userId = req.user.claims.sub;
+  }
+  next();
+}
+
+// Admin middleware for Replit Auth
+async function requireAdmin(req: any, res: any, next: any) {
+  const userId = req.user?.claims?.sub;
   if (!userId) {
     return res.status(401).json({ message: "Unauthorized" });
   }
   
-  req.userId = userId;
-  next();
-}
-
-async function requireAdmin(req: any, res: any, next: any) {
-  const user = await storage.getUser(req.userId);
+  const user = await storage.getUser(userId);
   if (!user?.isAdmin) {
     return res.status(403).json({ message: "Admin access required" });
   }
@@ -49,8 +52,9 @@ async function createMonthlyMatches() {
 
   // Group by gender
   const usersByGender = availableUsers.reduce((acc, user) => {
-    if (!acc[user.gender]) acc[user.gender] = [];
-    acc[user.gender].push(user);
+    const gender = user.gender || 'prefer_not_to_say';
+    if (!acc[gender]) acc[gender] = [];
+    acc[gender].push(user);
     return acc;
   }, {} as Record<string, any[]>);
 
@@ -74,82 +78,45 @@ async function createMonthlyMatches() {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup Replit Auth
+  await setupAuth(app);
   
-  // Auth routes
-  app.post("/api/auth/register", async (req, res) => {
+  // Replit Auth routes
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
-      const userData = insertUserSchema.parse(req.body);
-      
-      // Check if username already exists
-      const existingUser = await storage.getUserByUsername(userData.username);
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-
-      // Validate invite code
-      const inviteCode = await storage.getInviteCode(userData.inviteCode);
-      if (!inviteCode) {
-        return res.status(400).json({ message: "Invalid invite code" });
-      }
-      
-      if (!inviteCode.isActive) {
-        return res.status(400).json({ message: "Invite code is no longer active" });
-      }
-      
-      // Check if invite code has expired
-      if (inviteCode.expiresAt && new Date() > inviteCode.expiresAt) {
-        return res.status(400).json({ message: "Invite code has expired" });
-      }
-      
-      // Check if invite code has reached max uses
-      const currentUses = parseInt(inviteCode.currentUses || "0");
-      const maxUses = parseInt(inviteCode.maxUses || "1");
-      if (currentUses >= maxUses) {
-        return res.status(400).json({ message: "Invite code has reached maximum usage" });
-      }
-
-      // Create user without invite code field
-      const { inviteCode: _, ...userDataWithoutInvite } = userData;
-      const user = await storage.createUser(userDataWithoutInvite as any);
-      
-      // Mark invite code as used
-      await storage.markInviteCodeAsUsed(userData.inviteCode, user.id);
-      
-      const sessionId = generateSession();
-      sessions.set(sessionId, user.id);
-      
-      res.json({ user, sessionId });
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+      res.json(user);
     } catch (error) {
-      res.status(400).json({ message: error instanceof Error ? error.message : "Registration failed" });
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
     }
   });
-
-  app.post("/api/auth/login", async (req, res) => {
-    try {
-      const { username } = req.body;
-      const user = await storage.getUserByUsername(username);
-      
-      if (!user) {
-        return res.status(401).json({ message: "User not found" });
-      }
-
-      const sessionId = generateSession();
-      sessions.set(sessionId, user.id);
-      
-      res.json({ user, sessionId });
-    } catch (error) {
-      res.status(400).json({ message: "Login failed" });
-    }
+  
+  // SECURITY: Legacy auth endpoints DISABLED - all auth now through Replit Auth
+  app.post("/api/auth/register", (req, res) => {
+    res.status(410).json({ 
+      message: "Legacy registration disabled. Please use Replit Auth.", 
+      loginUrl: "/api/login" 
+    });
   });
 
-  app.post("/api/auth/logout", requireAuth, (req: any, res: any) => {
-    const sessionId = req.headers['x-session-id'] as string;
-    sessions.delete(sessionId);
-    res.json({ message: "Logged out" });
+  app.post("/api/auth/login", (req, res) => {
+    res.status(410).json({ 
+      message: "Legacy login disabled. Please use Replit Auth.", 
+      loginUrl: "/api/login" 
+    });
+  });
+
+  app.post("/api/auth/logout", (req, res) => {
+    res.status(410).json({ 
+      message: "Legacy logout disabled. Please use Replit Auth.", 
+      logoutUrl: "/api/logout" 
+    });
   });
 
   // User routes
-  app.get("/api/users/me", requireAuth, async (req: any, res: any) => {
+  app.get("/api/users/me", isAuthenticated, setUserId, async (req: any, res: any) => {
     try {
       const user = await storage.getUser(req.userId);
       res.json(user);
@@ -158,10 +125,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/users/me", requireAuth, async (req: any, res: any) => {
+  app.put("/api/users/me", isAuthenticated, setUserId, async (req: any, res: any) => {
     try {
-      const updates = req.body;
-      const user = await storage.updateUser(req.userId, updates);
+      // SECURITY: Only allow safe fields to be updated by users
+      const allowedUpdates = {
+        name: req.body.name,
+        gender: req.body.gender,
+        contactPreference: req.body.contactPreference,
+        timezone: req.body.timezone
+      };
+      // Remove undefined values
+      const sanitizedUpdates = Object.fromEntries(
+        Object.entries(allowedUpdates).filter(([_, value]) => value !== undefined)
+      );
+      
+      const user = await storage.updateUser(req.userId, sanitizedUpdates);
       res.json(user);
     } catch (error) {
       res.status(500).json({ message: "Failed to update user" });
@@ -169,7 +147,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Partnership routes
-  app.get("/api/partnerships/current", requireAuth, async (req: any, res: any) => {
+  app.get("/api/partnerships/current", isAuthenticated, setUserId, async (req: any, res: any) => {
     try {
       const partnership = await storage.getActivePartnershipForUser(req.userId);
       if (!partnership) {
@@ -185,7 +163,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/partnerships/history", requireAuth, async (req: any, res: any) => {
+  app.get("/api/partnerships/history", isAuthenticated, setUserId, async (req: any, res: any) => {
     try {
       const partnerships = await storage.getUserPartnerships(req.userId);
       const partnershipsWithPartners = await Promise.all(
@@ -202,7 +180,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/partnerships/:id", requireAuth, async (req: any, res: any) => {
+  app.put("/api/partnerships/:id", isAuthenticated, setUserId, async (req: any, res: any) => {
     try {
       const partnership = await storage.updatePartnership(req.params.id, req.body);
       res.json(partnership);
@@ -212,7 +190,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Message routes
-  app.get("/api/messages/:partnershipId", requireAuth, async (req: any, res: any) => {
+  app.get("/api/messages/:partnershipId", isAuthenticated, setUserId, async (req: any, res: any) => {
     try {
       const messages = await storage.getPartnershipMessages(req.params.partnershipId);
       const messagesWithSenders = await Promise.all(
@@ -228,7 +206,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/messages", requireAuth, async (req: any, res: any) => {
+  app.post("/api/messages", isAuthenticated, setUserId, async (req: any, res: any) => {
     try {
       const messageData = insertMessageSchema.parse(req.body);
       const message = await storage.createMessage(req.userId, messageData);
@@ -241,7 +219,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Exclusion routes
-  app.get("/api/exclusions", requireAuth, async (req: any, res: any) => {
+  app.get("/api/exclusions", isAuthenticated, setUserId, async (req: any, res: any) => {
     try {
       const exclusions = await storage.getUserExclusions(req.userId);
       const exclusionsWithUsers = await Promise.all(
@@ -257,7 +235,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/exclusions", requireAuth, async (req: any, res: any) => {
+  app.post("/api/exclusions", isAuthenticated, setUserId, async (req: any, res: any) => {
     try {
       const exclusionData = insertExclusionSchema.parse(req.body);
       const exclusion = await storage.createExclusion(req.userId, exclusionData);
@@ -268,7 +246,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Report routes
-  app.post("/api/reports", requireAuth, async (req: any, res: any) => {
+  app.post("/api/reports", isAuthenticated, setUserId, async (req: any, res: any) => {
     try {
       const reportData = insertReportSchema.parse(req.body);
       const report = await storage.createReport(req.userId, reportData);
@@ -279,7 +257,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Admin routes
-  app.get("/api/admin/reports", requireAuth, requireAdmin, async (req, res) => {
+  app.get("/api/admin/reports", isAuthenticated, setUserId, requireAdmin, async (req, res) => {
     try {
       const reports = await storage.getAllReports();
       const reportsWithUsers = await Promise.all(
@@ -296,7 +274,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.put("/api/admin/reports/:id", requireAuth, requireAdmin, async (req, res) => {
+  app.put("/api/admin/reports/:id", isAuthenticated, setUserId, requireAdmin, async (req, res) => {
     try {
       const report = await storage.updateReport(req.params.id, req.body);
       res.json(report);
@@ -305,7 +283,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get("/api/admin/stats", requireAuth, requireAdmin, async (req, res) => {
+  app.get("/api/admin/stats", isAuthenticated, setUserId, requireAdmin, async (req, res) => {
     try {
       const users = await storage.getAllUsers();
       const activeUsers = users.filter(u => u.isActive);
@@ -328,7 +306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/create-matches", requireAuth, requireAdmin, async (req, res) => {
+  app.post("/api/admin/create-matches", isAuthenticated, setUserId, requireAdmin, async (req, res) => {
     try {
       await createMonthlyMatches();
       res.json({ message: "Monthly matches created successfully" });
@@ -338,7 +316,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Invite code management routes (admin only)
-  app.get("/api/admin/invite-codes", requireAuth, requireAdmin, async (req, res) => {
+  app.get("/api/admin/invite-codes", isAuthenticated, setUserId, requireAdmin, async (req, res) => {
     try {
       const inviteCodes = await storage.getAllInviteCodes();
       const inviteCodesWithUsers = await Promise.all(
@@ -358,7 +336,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/admin/invite-codes", requireAuth, requireAdmin, async (req: any, res: any) => {
+  app.post("/api/admin/invite-codes", isAuthenticated, setUserId, requireAdmin, async (req: any, res: any) => {
     try {
       // Generate a random invite code if not provided
       const generateInviteCode = () => {
@@ -389,7 +367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete("/api/admin/invite-codes/:code", requireAuth, requireAdmin, async (req, res) => {
+  app.delete("/api/admin/invite-codes/:code", isAuthenticated, setUserId, requireAdmin, async (req, res) => {
     try {
       const inviteCode = await storage.deactivateInviteCode(req.params.code);
       if (!inviteCode) {
