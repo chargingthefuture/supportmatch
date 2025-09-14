@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, boolean, timestamp, pgEnum } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, boolean, timestamp, pgEnum, index, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -8,16 +8,34 @@ export const contactPreferenceEnum = pgEnum("contact_preference", ["text", "emai
 export const partnershipStatusEnum = pgEnum("partnership_status", ["active", "completed", "ended_early", "cancelled"]);
 export const reportStatusEnum = pgEnum("report_status", ["pending", "investigating", "resolved", "dismissed"]);
 
+// Session storage table - mandatory for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  name: text("name").notNull(),
-  gender: genderEnum("gender").notNull(),
-  contactPreference: contactPreferenceEnum("contact_preference").notNull(),
+  // Replit Auth fields
+  email: varchar("email").unique(),
+  firstName: varchar("first_name"),
+  lastName: varchar("last_name"),
+  profileImageUrl: varchar("profile_image_url"),
+  // Legacy/app-specific fields
+  username: text("username").unique(),
+  name: text("name"),
+  gender: genderEnum("gender"),
+  contactPreference: contactPreferenceEnum("contact_preference"),
   timezone: text("timezone"),
   isActive: boolean("is_active").default(true),
   isAdmin: boolean("is_admin").default(false),
   createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const partnerships = pgTable("partnerships", {
@@ -107,6 +125,8 @@ export const insertReportSchema = createInsertSchema(reports).pick({
 // Types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
+// Replit Auth types
+export type UpsertUser = typeof users.$inferInsert;
 export type Partnership = typeof partnerships.$inferSelect;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
