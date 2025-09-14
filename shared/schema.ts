@@ -26,7 +26,7 @@ export const users = pgTable("users", {
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
-  // Legacy/app-specific fields
+  // Legacy/app-specific fields (nullable since not provided by Replit Auth)
   username: text("username").unique(),
   name: text("name"),
   gender: genderEnum("gender"),
