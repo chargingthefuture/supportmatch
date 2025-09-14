@@ -247,7 +247,6 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="">No preference</SelectItem>
                             <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
                             <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
                             <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
