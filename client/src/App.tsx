@@ -3,46 +3,19 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useEffect, useState } from "react";
-import { authManager } from "./lib/auth";
-import { User } from "@shared/schema";
+import { useAuth } from "@/hooks/useAuth";
 
 import NotFound from "./pages/not-found";
 import Dashboard from "./pages/dashboard";
-import Register from "./pages/register";
+import Landing from "./pages/landing";
+import Home from "./pages/home";
 import Profile from "./pages/profile";
 import Admin from "./pages/admin";
 
 function Router() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const { user, isAuthenticated, isLoading } = useAuth();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      const sessionId = authManager.getSessionId();
-      if (sessionId) {
-        try {
-          const response = await fetch('/api/users/me', {
-            headers: authManager.getAuthHeaders()
-          });
-          if (response.ok) {
-            const userData = await response.json();
-            authManager.setSession(userData, sessionId);
-            setUser(userData);
-          } else {
-            authManager.logout();
-          }
-        } catch (error) {
-          authManager.logout();
-        }
-      }
-      setLoading(false);
-    };
-
-    checkAuth();
-  }, []);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-background">
         <div className="text-lg">Loading...</div>
@@ -52,14 +25,14 @@ function Router() {
 
   return (
     <Switch>
-      <Route path="/register" component={() => <Register onLogin={setUser} />} />
-      {!user ? (
-        <Route path="/" component={() => <Register onLogin={setUser} />} />
+      {isLoading || !isAuthenticated ? (
+        <Route path="/" component={Landing} />
       ) : (
         <>
-          <Route path="/" component={() => <Dashboard user={user} />} />
-          <Route path="/profile" component={() => <Profile user={user} onUserUpdate={setUser} />} />
-          {user.isAdmin && <Route path="/admin" component={() => <Admin user={user} />} />}
+          <Route path="/" component={Home} />
+          <Route path="/dashboard" component={() => <Dashboard user={user} />} />
+          <Route path="/profile" component={() => <Profile user={user} />} />
+          {user?.isAdmin && <Route path="/admin" component={() => <Admin user={user} />} />}
         </>
       )}
       <Route component={NotFound} />
