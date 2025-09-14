@@ -16,7 +16,7 @@ function Landing() {
             Support Match
           </h1>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-            Connect with meaningful partnerships. Find your perfect match for collaboration, 
+             for collaboration, 
             friendship, and shared experiences in a safe and welcoming community.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
