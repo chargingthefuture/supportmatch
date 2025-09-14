@@ -22,7 +22,7 @@ function Home() {
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                PartnerMatch
+                SupportMatch
               </h1>
               {user && (
                 <span className="text-sm text-gray-600 dark:text-gray-300" data-testid="text-welcome">
@@ -118,7 +118,7 @@ function Home() {
               <div className="flex items-center space-x-3">
                 <Calendar className="h-8 w-8 text-purple-600" />
                 <div>
-                  <CardTitle>Schedule</CardTitle>
+                  <CardTitle>Matches</CardTitle>
                   <CardDescription>Manage your meetings</CardDescription>
                 </div>
               </div>
@@ -129,7 +129,7 @@ function Home() {
                 className="w-full"
                 data-testid="button-schedule"
               >
-                <Link href="/dashboard">View Schedule</Link>
+                <Link href="/dashboard">View Matches</Link>
               </Button>
             </CardContent>
           </Card>
