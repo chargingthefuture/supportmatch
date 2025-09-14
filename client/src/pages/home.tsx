@@ -22,7 +22,7 @@ function Home() {
           <div className="flex justify-between items-center">
             <div className="flex items-center space-x-4">
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
-                Suppor tMatch
+                Support Match
               </h1>
               {user && (
                 <span className="text-sm text-gray-600 dark:text-gray-300" data-testid="text-welcome">
@@ -136,26 +136,6 @@ function Home() {
           </Card>
         </div>
 
-        <div className="mt-12 text-center">
-          <Card className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-gray-800 dark:to-gray-700 border-0">
-            <CardContent className="pt-6">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                Ready to find your perfect match?
-              </h2>
-              <p className="text-gray-600 dark:text-gray-300 mb-4">
-                Explore your dashboard to see potential connections and start meaningful conversations.
-              </p>
-              <Button 
-                asChild 
-                size="lg"
-                className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700"
-                data-testid="button-get-started"
-              >
-                <Link href="/dashboard">Get Started</Link>
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
       </div>
     </div>
   );

@@ -35,10 +35,6 @@ export default function ProfileSidebar({
     return gender.charAt(0).toUpperCase() + gender.slice(1).replace('_', ' ');
   };
 
-  const getSuccessRate = () => {
-    // Simple calculation - could be enhanced with real data
-    return Math.floor(Math.random() * 20) + 80; // 80-100%
-  };
 
   return (
     <div className="space-y-6">
@@ -59,10 +55,6 @@ export default function ProfileSidebar({
             <div className="flex justify-between">
               <span className="text-muted-foreground">Partnerships:</span>
               <span className="font-medium" data-testid="text-partnership-count">{partnershipCount}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Success Rate:</span>
-              <span className="font-medium text-green-600" data-testid="text-success-rate">{getSuccessRate()}%</span>
             </div>
             <div className="flex justify-between">
               <span className="text-muted-foreground">Member Since:</span>

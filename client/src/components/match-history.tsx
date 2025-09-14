@@ -79,13 +79,6 @@ export default function MatchHistory({ currentUser, onExcludeUser }: MatchHistor
     return `${weeks} weeks`;
   };
 
-  const getSuccessRate = (partnership: Partnership) => {
-    // Simple calculation - could be enhanced with real tracking data
-    if (partnership.status === 'completed') return 85 + Math.floor(Math.random() * 15);
-    if (partnership.status === 'active') return 70 + Math.floor(Math.random() * 20);
-    if (partnership.status === 'ended_early') return 40 + Math.floor(Math.random() * 30);
-    return 20 + Math.floor(Math.random() * 40);
-  };
 
   const handleExclude = async (userId: string) => {
     setExcludingUserId(userId);
@@ -128,7 +121,6 @@ export default function MatchHistory({ currentUser, onExcludeUser }: MatchHistor
               </thead>
               <tbody className="divide-y divide-border">
                 {partnerships.map(({ partnership, partner }) => {
-                  const successRate = getSuccessRate(partnership);
                   const isExcluding = excludingUserId === partner.id;
                   const isExcluded = exclusions.some((exclusion: any) => exclusion.excludedUserId === partner.id);
                   
