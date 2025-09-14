@@ -87,7 +87,9 @@ async function createMonthlyMatches() {
     }
   }
 
-  // Group by gender
+  // Group by gender for matching
+  // Users who selected "prefer_not_to_say" are matched only with others who also selected "prefer_not_to_say"
+  // This ensures both partners are comfortable with gender-flexible matching
   const usersByGender = availableUsers.reduce((acc, user) => {
     const gender = user.gender || 'prefer_not_to_say';
     if (!acc[gender]) acc[gender] = [];
