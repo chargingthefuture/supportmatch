@@ -6,6 +6,7 @@ import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import bcrypt from "bcryptjs";
 import rateLimit from "express-rate-limit";
+import { validateConnection, isDbConnected, pool } from "./db";
 
 // Legacy session tracking for backward compatibility during migration
 const sessions = new Map<string, string>();
@@ -119,6 +120,106 @@ async function createMonthlyMatches() {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Replit Auth
   await setupAuth(app);
+  
+  // Health check endpoint with active database ping
+  app.get('/api/health', async (req, res) => {
+    const startTime = Date.now();
+    try {
+      const healthStatus: any = {
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        database: {
+          connected: false,
+          status: 'checking',
+          validationTimeMs: 0,
+          coldStartDetected: false,
+          lastValidatedAt: null
+        }
+      };
+
+      // Always perform active database ping with timeout
+      const DB_HEALTH_TIMEOUT = 2000; // 2 second timeout
+      const COLD_START_THRESHOLD = 1000; // Consider > 1s as cold start
+      
+      try {
+        const dbPingPromise = (async () => {
+          const queryStart = Date.now();
+          // Perform lightweight ping to test actual connectivity
+          await pool.query('SELECT 1 as health_check');
+          return Date.now() - queryStart;
+        })();
+
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          setTimeout(() => reject(new Error('Database health check timeout')), DB_HEALTH_TIMEOUT);
+        });
+
+        // Race between ping and timeout
+        const validationTime = await Promise.race([dbPingPromise, timeoutPromise]);
+        
+        healthStatus.database.connected = true;
+        healthStatus.database.status = 'connected';
+        healthStatus.database.validationTimeMs = validationTime;
+        healthStatus.database.coldStartDetected = validationTime > COLD_START_THRESHOLD;
+        healthStatus.database.lastValidatedAt = new Date().toISOString();
+        
+        // Add cold start status to overall health
+        if (healthStatus.database.coldStartDetected) {
+          healthStatus.status = 'slow';
+          healthStatus.database.status = 'cold_start';
+        }
+        
+      } catch (dbError: any) {
+        const validationTime = Date.now() - startTime;
+        healthStatus.status = 'degraded';
+        healthStatus.database.connected = false;
+        healthStatus.database.status = 'error';
+        healthStatus.database.validationTimeMs = validationTime;
+        healthStatus.database.errorCode = dbError.code || 'UNKNOWN';
+        // Don't expose full error message in production for security
+        healthStatus.database.error = process.env.NODE_ENV === 'production' 
+          ? 'Database connection failed' 
+          : dbError.message;
+      }
+
+      // Return appropriate status code
+      const statusCode = healthStatus.status === 'ok' || healthStatus.status === 'slow' ? 200 : 503;
+      res.status(statusCode).json(healthStatus);
+      
+    } catch (error: any) {
+      const validationTime = Date.now() - startTime;
+      res.status(503).json({
+        status: 'error',
+        timestamp: new Date().toISOString(),
+        validationTimeMs: validationTime,
+        error: process.env.NODE_ENV === 'production' ? 'Health check failed' : error.message
+      });
+    }
+  });
+
+  // Readiness endpoint for deployment platforms
+  app.get('/api/ready', async (req, res) => {
+    try {
+      // Quick database connectivity test with short timeout
+      await Promise.race([
+        pool.query('SELECT 1'),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 1000))
+      ]);
+      res.status(200).json({ status: 'ready', timestamp: new Date().toISOString() });
+    } catch (error) {
+      res.status(503).json({ status: 'not_ready', timestamp: new Date().toISOString() });
+    }
+  });
+
+  // Liveness endpoint for deployment platforms
+  app.get('/api/live', (req, res) => {
+    // Simple liveness check without DB dependency
+    res.status(200).json({ 
+      status: 'alive', 
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
   
   // Replit Auth routes
   app.get('/api/auth/user', isAuthenticated, setUserId, async (req: any, res) => {
