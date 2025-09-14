@@ -4,7 +4,6 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const genderEnum = pgEnum("gender", ["male", "female", "non-binary", "prefer_not_to_say"]);
-export const contactPreferenceEnum = pgEnum("contact_preference", ["text", "email", "app_only"]);
 export const partnershipStatusEnum = pgEnum("partnership_status", ["active", "completed", "ended_early", "cancelled"]);
 export const reportStatusEnum = pgEnum("report_status", ["pending", "investigating", "resolved", "dismissed"]);
 
@@ -33,7 +32,6 @@ export const users = pgTable("users", {
   username: text("username").unique(),
   name: text("name"),
   gender: genderEnum("gender"),
-  contactPreference: contactPreferenceEnum("contact_preference"),
   timezone: text("timezone"),
   isActive: boolean("is_active").default(true),
   isAdmin: boolean("is_admin").default(false),
@@ -97,7 +95,6 @@ export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   name: true,
   gender: true,
-  contactPreference: true,
   timezone: true,
 }).extend({
   inviteCode: z.string().min(1, "Invite code is required"),

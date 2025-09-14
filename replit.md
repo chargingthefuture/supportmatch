@@ -55,7 +55,6 @@ Preferred communication style: Simple, everyday language.
 ### Communication Features
 - **In-app Messaging**: Real-time messaging system within partnerships
 - **Message Persistence**: All partnership communications are stored and retrievable
-- **Contact Preferences**: User-configurable communication preferences (text, email, app-only)
 - **Partnership Duration**: Fixed monthly partnership periods with clear start and end dates
 
 ## External Dependencies

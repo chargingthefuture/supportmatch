@@ -71,7 +71,6 @@ export class DatabaseStorage implements IStorage {
             username: adminUsername,
             name: "System Administrator",
             gender: "prefer_not_to_say",
-            contactPreference: "app_only",
             timezone: null,
             isActive: true,
             isAdmin: true
@@ -122,7 +121,6 @@ export class DatabaseStorage implements IStorage {
         username: insertUser.username,
         name: insertUser.name,
         gender: insertUser.gender,
-        contactPreference: insertUser.contactPreference,
         timezone: insertUser.timezone || null,
         isActive: true,
         isAdmin: false

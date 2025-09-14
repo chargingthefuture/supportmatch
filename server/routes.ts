@@ -138,7 +138,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         firstName: user.firstName,
         lastName: user.lastName,
         profileImageUrl: user.profileImageUrl,
-        contactPreference: user.contactPreference,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt
       };
@@ -341,7 +340,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const allowedUpdates = {
         name: req.body.name,
         gender: req.body.gender,
-        contactPreference: req.body.contactPreference,
         timezone: req.body.timezone
       };
       // Remove undefined values

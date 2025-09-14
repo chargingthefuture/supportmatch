@@ -20,7 +20,6 @@ import { z } from "zod";
 const updateProfileSchema = insertUserSchema.pick({
   name: true,
   gender: true,
-  contactPreference: true,
   timezone: true,
 });
 
@@ -45,7 +44,6 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
     defaultValues: {
       name: user.name,
       gender: user.gender,
-      contactPreference: user.contactPreference,
       timezone: user.timezone || "",
     },
   });
@@ -68,7 +66,6 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
         form.reset({
           name: updatedUser.name,
           gender: updatedUser.gender,
-          contactPreference: updatedUser.contactPreference,
           timezone: updatedUser.timezone || "",
         });
         toast({
@@ -116,16 +113,8 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
     return gender.charAt(0).toUpperCase() + gender.slice(1).replace('_', ' ');
   };
 
-  const formatContactPreference = (pref: string) => {
-    switch (pref) {
-      case 'text': return 'Text messages preferred';
-      case 'email': return 'Email preferred';
-      case 'app_only': return 'App messaging only';
-      default: return 'Not specified';
-    }
-  };
 
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | null) => {
     if (!name || typeof name !== 'string') {
       return 'TU';
     }
@@ -210,7 +199,8 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                         <FormControl>
                           <Input 
                             placeholder="Enter your full name" 
-                            {...field} 
+                            {...field}
+                            value={field.value || ""}
                             data-testid="input-name"
                           />
                         </FormControl>
@@ -225,7 +215,7 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Gender</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} data-testid="select-gender">
+                        <Select onValueChange={field.onChange} defaultValue={field.value || ""} data-testid="select-gender">
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select your gender" />
@@ -243,28 +233,6 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="contactPreference"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Contact Preference</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value} data-testid="select-contact-preference">
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="How would you prefer to be contacted?" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="app_only">App messaging only</SelectItem>
-                            <SelectItem value="text">Text messages preferred</SelectItem>
-                            <SelectItem value="email">Email preferred</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
 
                   <FormField
                     control={form.control}
@@ -406,17 +374,6 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
               <div>
                 <h4 className="font-semibold mb-3">Data & Communication</h4>
                 <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                    <div>
-                      <p className="font-medium">Contact preference</p>
-                      <p className="text-sm text-muted-foreground">
-                        How partners can communicate with you
-                      </p>
-                    </div>
-                    <Badge variant="outline" data-testid="badge-contact-preference">
-                      {formatContactPreference(user.contactPreference)}
-                    </Badge>
-                  </div>
                   <div className="flex items-center justify-between p-3 border border-border rounded-lg">
                     <div>
                       <p className="font-medium">Message history</p>

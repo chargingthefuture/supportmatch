@@ -2,7 +2,7 @@ import { User, Partnership } from "@shared/schema";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MessageCircle, AlertTriangle, Clock, MapPin, Phone } from "lucide-react";
+import { MessageCircle, AlertTriangle, Clock, MapPin } from "lucide-react";
 import { useState } from "react";
 
 interface CurrentPartnershipProps {
@@ -22,7 +22,7 @@ export default function CurrentPartnership({
 }: CurrentPartnershipProps) {
   const [isReporting, setIsReporting] = useState(false);
 
-  const getInitials = (name: string) => {
+  const getInitials = (name: string | null) => {
     if (!name || typeof name !== 'string') {
       return 'TU';
     }
@@ -56,14 +56,6 @@ export default function CurrentPartnership({
     return gender.charAt(0).toUpperCase() + gender.slice(1).replace('_', ' ');
   };
 
-  const formatContactPreference = (pref: string) => {
-    switch (pref) {
-      case 'text': return 'Text preferred';
-      case 'email': return 'Email preferred';
-      case 'app_only': return 'App messaging only';
-      default: return 'Not specified';
-    }
-  };
 
   const handleReport = async () => {
     setIsReporting(true);
@@ -103,10 +95,6 @@ export default function CurrentPartnership({
                       <span data-testid="text-partner-timezone">{partner.timezone}</span>
                     </div>
                   )}
-                  <div className="flex items-center text-muted-foreground">
-                    <Phone className="w-4 h-4 mr-2" />
-                    <span data-testid="text-partner-contact-preference">{formatContactPreference(partner.contactPreference)}</span>
-                  </div>
                   <div className="flex items-center text-muted-foreground">
                     <Clock className="w-4 h-4 mr-2" />
                     <span data-testid="text-partner-joined">Joined {new Date(partner.createdAt!).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</span>
