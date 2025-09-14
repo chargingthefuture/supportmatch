@@ -50,15 +50,18 @@ function Router() {
     );
   }
 
-  if (!user) {
-    return <Register onLogin={setUser} />;
-  }
-
   return (
     <Switch>
-      <Route path="/" component={() => <Dashboard user={user} />} />
-      <Route path="/profile" component={() => <Profile user={user} onUserUpdate={setUser} />} />
-      {user.isAdmin && <Route path="/admin" component={() => <Admin user={user} />} />}
+      <Route path="/register" component={() => <Register onLogin={setUser} />} />
+      {!user ? (
+        <Route path="/" component={() => <Register onLogin={setUser} />} />
+      ) : (
+        <>
+          <Route path="/" component={() => <Dashboard user={user} />} />
+          <Route path="/profile" component={() => <Profile user={user} onUserUpdate={setUser} />} />
+          {user.isAdmin && <Route path="/admin" component={() => <Admin user={user} />} />}
+        </>
+      )}
       <Route component={NotFound} />
     </Switch>
   );

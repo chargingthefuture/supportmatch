@@ -376,16 +376,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         expiresAt: req.body.expiresAt ? new Date(req.body.expiresAt) : null,
       };
 
-      // Validate the data
-      const validatedData = insertInviteCodeSchema.parse(inviteCodeData);
-      
       // Check if code already exists
-      const existingCode = await storage.getInviteCode(validatedData.code);
+      const existingCode = await storage.getInviteCode(inviteCodeData.code);
       if (existingCode) {
         return res.status(400).json({ message: "Invite code already exists" });
       }
 
-      const inviteCode = await storage.createInviteCode(req.userId, validatedData);
+      const inviteCode = await storage.createInviteCode(req.userId, inviteCodeData);
       res.json(inviteCode);
     } catch (error) {
       res.status(400).json({ message: error instanceof Error ? error.message : "Failed to create invite code" });
