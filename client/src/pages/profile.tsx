@@ -240,14 +240,47 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Timezone (Optional)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="e.g., PST, EST, UTC-8" 
-                            {...field}
-                            value={field.value || ""}
-                            data-testid="input-timezone"
-                          />
-                        </FormControl>
+                        <Select onValueChange={field.onChange} defaultValue={field.value || ""} data-testid="select-timezone">
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select your timezone" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="">No preference</SelectItem>
+                            <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
+                            <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
+                            <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
+                            <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
+                            <SelectItem value="America/Anchorage">Alaska Time (AKT)</SelectItem>
+                            <SelectItem value="Pacific/Honolulu">Hawaii Time (HST)</SelectItem>
+                            <SelectItem value="Europe/London">GMT (London)</SelectItem>
+                            <SelectItem value="Europe/Paris">CET (Paris)</SelectItem>
+                            <SelectItem value="Europe/Berlin">CET (Berlin)</SelectItem>
+                            <SelectItem value="Europe/Rome">CET (Rome)</SelectItem>
+                            <SelectItem value="Europe/Madrid">CET (Madrid)</SelectItem>
+                            <SelectItem value="Europe/Amsterdam">CET (Amsterdam)</SelectItem>
+                            <SelectItem value="Europe/Stockholm">CET (Stockholm)</SelectItem>
+                            <SelectItem value="Europe/Moscow">MSK (Moscow)</SelectItem>
+                            <SelectItem value="Asia/Tokyo">JST (Tokyo)</SelectItem>
+                            <SelectItem value="Asia/Shanghai">CST (Shanghai)</SelectItem>
+                            <SelectItem value="Asia/Hong_Kong">HKT (Hong Kong)</SelectItem>
+                            <SelectItem value="Asia/Singapore">SGT (Singapore)</SelectItem>
+                            <SelectItem value="Asia/Seoul">KST (Seoul)</SelectItem>
+                            <SelectItem value="Asia/Kolkata">IST (India)</SelectItem>
+                            <SelectItem value="Asia/Dubai">GST (Dubai)</SelectItem>
+                            <SelectItem value="Australia/Sydney">AEDT (Sydney)</SelectItem>
+                            <SelectItem value="Australia/Melbourne">AEDT (Melbourne)</SelectItem>
+                            <SelectItem value="Australia/Perth">AWST (Perth)</SelectItem>
+                            <SelectItem value="Pacific/Auckland">NZDT (Auckland)</SelectItem>
+                            <SelectItem value="America/Toronto">Eastern Time (Toronto)</SelectItem>
+                            <SelectItem value="America/Vancouver">Pacific Time (Vancouver)</SelectItem>
+                            <SelectItem value="America/Sao_Paulo">BRT (São Paulo)</SelectItem>
+                            <SelectItem value="America/Mexico_City">CST (Mexico City)</SelectItem>
+                            <SelectItem value="Africa/Cairo">EET (Cairo)</SelectItem>
+                            <SelectItem value="Africa/Johannesburg">SAST (Johannesburg)</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
