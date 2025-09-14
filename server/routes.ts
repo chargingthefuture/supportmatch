@@ -12,17 +12,24 @@ function generateSession(): string {
   return Math.random().toString(36).substring(2) + Date.now().toString(36);
 }
 
-// Middleware to set req.userId from Replit Auth claims for legacy compatibility
+// Middleware to set req.userId from either Replit Auth claims or local session
 function setUserId(req: any, res: any, next: any) {
+  // Try OIDC claims first
   if (req.user?.claims?.sub) {
     req.userId = req.user.claims.sub;
+  }
+  // Fallback to local session
+  else if (req.session?.userId) {
+    req.userId = req.session.userId;
   }
   next();
 }
 
-// Admin middleware for Replit Auth
+// Admin middleware for both auth types
 async function requireAdmin(req: any, res: any, next: any) {
-  const userId = req.user?.claims?.sub;
+  // Get userId from either OIDC claims or local session
+  const userId = req.user?.claims?.sub || req.session?.userId;
+  
   if (!userId) {
     return res.status(401).json({ message: "Unauthorized" });
   }

@@ -130,29 +130,46 @@ export async function setupAuth(app: Express) {
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
   const user = req.user as any;
+  const session = req.session as any;
 
-  if (!req.isAuthenticated() || !user.expires_at) {
-    return res.status(401).json({ message: "Unauthorized" });
+  // Check for Replit Auth (OIDC) authentication
+  if (req.isAuthenticated() && user.expires_at) {
+    const now = Math.floor(Date.now() / 1000);
+    
+    // Token is still valid
+    if (now <= user.expires_at) {
+      return next();
+    }
+
+    // Try to refresh the token
+    const refreshToken = user.refresh_token;
+    if (refreshToken) {
+      try {
+        const config = await getOidcConfig();
+        const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
+        updateUserSession(user, tokenResponse);
+        return next();
+      } catch (error) {
+        // OIDC refresh failed, but don't return error yet - check local session
+      }
+    }
   }
 
-  const now = Math.floor(Date.now() / 1000);
-  if (now <= user.expires_at) {
-    return next();
+  // Check for local session authentication
+  if (session && session.userId) {
+    try {
+      // Verify user still exists and is active
+      const user = await storage.getUser(session.userId);
+      if (user && user.isActive) {
+        // Record login activity
+        await storage.recordLogin(session.userId);
+        return next();
+      }
+    } catch (error) {
+      // Local session verification failed
+    }
   }
 
-  const refreshToken = user.refresh_token;
-  if (!refreshToken) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
-
-  try {
-    const config = await getOidcConfig();
-    const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
-    updateUserSession(user, tokenResponse);
-    return next();
-  } catch (error) {
-    res.status(401).json({ message: "Unauthorized" });
-    return;
-  }
+  // Neither authentication method worked
+  return res.status(401).json({ message: "Unauthorized" });
 };
