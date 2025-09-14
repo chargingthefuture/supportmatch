@@ -1,5 +1,5 @@
 import { type User, type InsertUser, type UpsertUser, type RegisterUser, type Partnership, type Message, type InsertMessage, type Exclusion, type InsertExclusion, type Report, type InsertReport, type InviteCode, type InsertInviteCode, users, partnerships, messages, exclusions, reports, inviteCodes } from "@shared/schema";
-import { db, withRetry, validateConnection } from "./db";
+import { db, withRetry, validateConnection, validateSchemaWithRetry } from "./db";
 import { eq, and, or, lte, desc } from "drizzle-orm";
 
 export interface IStorage {
@@ -75,6 +75,14 @@ export class DatabaseStorage implements IStorage {
       
       // Ensure database connection is valid before seeding
       await validateConnection();
+      
+      // Validate schema exists before attempting to seed
+      const schemaValid = await validateSchemaWithRetry();
+      if (!schemaValid) {
+        console.error('[ADMIN] Cannot seed admin user - database schema does not exist');
+        console.error('[ADMIN] Please run "npm run db:push" to create the database schema first');
+        return;
+      }
       
       const adminUsername = `admin_${adminToken.substring(0, 8)}`;
       

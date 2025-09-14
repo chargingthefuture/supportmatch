@@ -115,6 +115,54 @@ export const validateConnection = async (): Promise<void> => {
 // Export connection status checker
 export const isDbConnected = (): boolean => isConnectionValidated;
 
+// Schema validation - check if required tables exist
+export async function validateSchema(): Promise<boolean> {
+  try {
+    // Check if users table exists by querying the information schema
+    const result = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users'
+      ) as table_exists
+    `);
+    
+    const tableExists = result.rows[0]?.table_exists === true;
+    
+    if (tableExists) {
+      console.log('[DB] Schema validation passed - users table exists');
+      return true;
+    } else {
+      console.warn('[DB] Schema validation failed - users table does not exist');
+      console.warn('[DB] Run "npm run db:push" to create the database schema');
+      return false;
+    }
+  } catch (error: any) {
+    // Check if this is a transient error that should be retried
+    const isTransientError = TRANSIENT_ERROR_CODES.some(code => 
+      error.code === code || error.message?.includes(code) || 
+      error.message?.includes('timeout') || error.message?.includes('ECONNRESET')
+    );
+    
+    if (isTransientError) {
+      console.warn('[DB] Schema validation failed with transient error:', error.message);
+      throw error; // Rethrow so retry logic can handle it
+    } else {
+      console.error('[DB] Schema validation failed with non-transient error:', error.message);
+      return false; // Non-transient errors should not be retried
+    }
+  }
+}
+
+// Schema validation with retry logic
+export async function validateSchemaWithRetry(): Promise<boolean> {
+  return await withRetry(
+    () => validateSchema(),
+    'schema validation',
+    2 // Only retry twice for schema checks
+  );
+}
+
 // Transient error codes that should trigger retries
 const TRANSIENT_ERROR_CODES = ['XX000', '57P03', '53300', 'ETIMEDOUT', 'ECONNRESET', 'ECONNREFUSED'];
 
