@@ -118,12 +118,6 @@ export default function Dashboard({ user }: DashboardProps) {
     window.location.href = '/profile?tab=exclusions';
   };
 
-  const handleReportSafety = () => {
-    toast({
-      title: "Safety Report",
-      description: "Safety reporting interface would open here.",
-    });
-  };
 
   const handleExcludeUser = async (userId: string, reason?: string) => {
     await createExclusion.mutateAsync({ excludedUserId: userId, reason });
@@ -191,7 +185,6 @@ export default function Dashboard({ user }: DashboardProps) {
             user={user}
             partnershipCount={partnershipHistory.length}
             onManageExclusions={handleManageExclusions}
-            onReportSafety={handleReportSafety}
           />
         </div>
 
