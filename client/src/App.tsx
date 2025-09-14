@@ -17,6 +17,11 @@ import Login from "./pages/login";
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
 
+  const handleUserUpdate = (updatedUser: any) => {
+    // Invalidate user query to trigger a refresh
+    queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-background">
@@ -37,7 +42,7 @@ function Router() {
         <>
           <Route path="/" component={Home} />
           <Route path="/dashboard" component={() => <Dashboard user={user!} />} />
-          <Route path="/profile" component={() => <Profile user={user!} />} />
+          <Route path="/profile" component={() => <Profile user={user!} onUserUpdate={handleUserUpdate} />} />
           {user?.isAdmin && <Route path="/admin" component={() => <Admin user={user!} />} />}
         </>
       )}
