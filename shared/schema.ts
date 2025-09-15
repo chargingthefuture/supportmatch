@@ -6,6 +6,7 @@ import { z } from "zod";
 export const genderEnum = pgEnum("gender", ["male", "female", "non-binary", "prefer_not_to_say"]);
 export const partnershipStatusEnum = pgEnum("partnership_status", ["active", "completed", "ended_early", "cancelled"]);
 export const reportStatusEnum = pgEnum("report_status", ["pending", "investigating", "resolved", "dismissed"]);
+export const announcementTypeEnum = pgEnum("announcement_type", ["info", "warning", "maintenance", "update", "promotion"]);
 
 // Session storage table - mandatory for Replit Auth
 export const sessions = pgTable(
@@ -90,6 +91,19 @@ export const inviteCodes = pgTable("invite_codes", {
   usedAt: timestamp("used_at"),
 });
 
+export const announcements = pgTable("announcements", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  title: varchar("title").notNull(),
+  content: text("content").notNull(),
+  type: announcementTypeEnum("type").default("info"),
+  isActive: boolean("is_active").default(true),
+  showOnLogin: boolean("show_on_login").default(true),
+  createdBy: varchar("created_by").notNull().references(() => users.id),
+  expiresAt: timestamp("expires_at"), // Optional expiration date
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
 // Insert schemas
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
@@ -128,6 +142,18 @@ export const insertInviteCodeSchema = createInsertSchema(inviteCodes).pick({
   expiresAt: true,
 });
 
+export const insertAnnouncementSchema = createInsertSchema(announcements).pick({
+  title: true,
+  content: true,
+  type: true,
+  isActive: true,
+  showOnLogin: true,
+  expiresAt: true,
+}).extend({
+  title: z.string().min(1, "Title is required"),
+  content: z.string().min(1, "Content is required"),
+});
+
 export const insertMessageSchema = createInsertSchema(messages).pick({
   partnershipId: true,
   content: true,
@@ -163,3 +189,5 @@ export type Report = typeof reports.$inferSelect;
 export type InsertReport = z.infer<typeof insertReportSchema>;
 export type InviteCode = typeof inviteCodes.$inferSelect;
 export type InsertInviteCode = z.infer<typeof insertInviteCodeSchema>;
+export type Announcement = typeof announcements.$inferSelect;
+export type InsertAnnouncement = z.infer<typeof insertAnnouncementSchema>;
