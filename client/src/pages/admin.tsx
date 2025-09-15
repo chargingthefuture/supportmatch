@@ -416,8 +416,10 @@ export default function Admin({ user }: AdminProps) {
     }
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateValue: string | Date | null) => {
+    if (!dateValue) return 'N/A';
+    const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -1101,7 +1103,7 @@ export default function Admin({ user }: AdminProps) {
                                 <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                                   <FormControl>
                                     <Switch
-                                      checked={field.value}
+                                      checked={field.value ?? true}
                                       onCheckedChange={field.onChange}
                                       data-testid="switch-announcement-active"
                                     />
@@ -1118,7 +1120,7 @@ export default function Admin({ user }: AdminProps) {
                                 <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                                   <FormControl>
                                     <Switch
-                                      checked={field.value}
+                                      checked={field.value ?? true}
                                       onCheckedChange={field.onChange}
                                       data-testid="switch-announcement-show-login"
                                     />
@@ -1321,7 +1323,7 @@ export default function Admin({ user }: AdminProps) {
                         render={({ field }) => (
                           <FormItem>
                             <FormLabel>Type</FormLabel>
-                            <Select onValueChange={field.onChange} value={field.value}>
+                            <Select onValueChange={field.onChange} value={field.value ?? "info"}>
                               <FormControl>
                                 <SelectTrigger data-testid="select-edit-announcement-type">
                                   <SelectValue placeholder="Select type" />
@@ -1369,7 +1371,7 @@ export default function Admin({ user }: AdminProps) {
                           <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                             <FormControl>
                               <Switch
-                                checked={field.value}
+                                checked={field.value ?? true}
                                 onCheckedChange={field.onChange}
                                 data-testid="switch-edit-announcement-active"
                               />
@@ -1386,7 +1388,7 @@ export default function Admin({ user }: AdminProps) {
                           <FormItem className="flex flex-row items-center space-x-3 space-y-0">
                             <FormControl>
                               <Switch
-                                checked={field.value}
+                                checked={field.value ?? true}
                                 onCheckedChange={field.onChange}
                                 data-testid="switch-edit-announcement-show-login"
                               />

@@ -103,8 +103,10 @@ export default function AnnouncementsPage({ user }: AnnouncementsPageProps) {
     return stats;
   }, {} as Record<string, number>);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateValue: string | Date | null) => {
+    if (!dateValue) return 'N/A';
+    const date = typeof dateValue === 'string' ? new Date(dateValue) : dateValue;
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

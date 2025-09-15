@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
 import { Link } from "wouter";
+import AnnouncementDisplay from "@/components/announcement-display";
 import { 
   Users, 
   MessageSquare, 
@@ -9,7 +10,8 @@ import {
   Settings, 
   LogOut,
   UserCircle,
-  Shield
+  Shield,
+  Megaphone
 } from "lucide-react";
 
 function Home() {
@@ -70,6 +72,13 @@ function Home() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
+        {/* Login Announcements */}
+        <AnnouncementDisplay 
+          showLoginOnly={true}
+          className="mb-8"
+          maxCount={3}
+        />
+
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
@@ -109,6 +118,28 @@ function Home() {
                 data-testid="button-messages"
               >
                 <Link href="/dashboard">View Messages</Link>
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="hover:shadow-lg transition-shadow">
+            <CardHeader>
+              <div className="flex items-center space-x-3">
+                <Megaphone className="h-8 w-8 text-purple-600" />
+                <div>
+                  <CardTitle>Announcements</CardTitle>
+                  <CardDescription>View all announcements and updates</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                asChild 
+                variant="outline" 
+                className="w-full"
+                data-testid="button-announcements"
+              >
+                <Link href="/announcements">View All</Link>
               </Button>
             </CardContent>
           </Card>

@@ -13,6 +13,7 @@ import Profile from "./pages/profile";
 import Admin from "./pages/admin";
 import Register from "./pages/register";
 import Login from "./pages/login";
+import AnnouncementsPage from "./pages/announcements";
 
 function Router() {
   const { user, isAuthenticated, isLoading, dbUnavailable, dbError, hasLimitedData } = useAuth();
@@ -64,6 +65,7 @@ function Router() {
             <>
               <Route path="/dashboard" component={() => <Dashboard user={user} />} />
               <Route path="/profile" component={() => <Profile user={user} onUserUpdate={handleUserUpdate} />} />
+              <Route path="/announcements" component={() => <AnnouncementsPage user={user} />} />
               {user.isAdmin && <Route path="/admin" component={() => <Admin user={user} />} />}
             </>
           )}
