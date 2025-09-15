@@ -9,7 +9,7 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import MemoryStore from "memorystore";
 import { storage } from "./storage";
-import { pool, isDbConnected } from "./db";
+import { pool } from "./db";
 
 // Helper function to extract invite code from OAuth state parameter
 function extractInviteCodeFromState(state?: string): string | undefined {
@@ -56,7 +56,7 @@ export function getSession() {
   let sessionStore: any;
   
   // Try to use PostgreSQL session store if database is available
-  if (pool && process.env.DATABASE_URL) {
+  if (pool) {
     try {
       console.log('[Auth] Attempting to use PostgreSQL session store');
       const pgStore = connectPg(session);
@@ -71,8 +71,8 @@ export function getSession() {
           console.warn('[Auth] Session store error (non-fatal):', error.message);
           // Don't crash the application on session store errors
         },
-        // Disable automatic session pruning to prevent auth failures
-        pruneSessionInterval: false,
+        // Re-enable session pruning since we're using the shared pool
+        pruneSessionInterval: 3600000, // Prune every hour (1 hour = 3600000 ms)
       });
       
       console.log('[Auth] PostgreSQL session store configured successfully');
