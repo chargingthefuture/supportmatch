@@ -54,6 +54,7 @@ export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
   
   let sessionStore: any;
+  let pgStoreCreated = false;
   
   // Try to use PostgreSQL session store if database is available
   if (pool) {
@@ -61,53 +62,87 @@ export function getSession() {
       console.log('[Auth] Attempting to use PostgreSQL session store');
       const pgStore = connectPg(session);
       
-      sessionStore = new pgStore({
-        pool: pool, // Use the pool from db.ts instead of connection string
-        createTableIfMissing: false,
-        ttl: sessionTtl / 1000, // convert to seconds for pg store
-        tableName: "sessions",
-        // Add error handling configuration
-        errorLog: (error: Error) => {
-          console.warn('[Auth] Session store error (non-fatal):', error.message);
-          // Don't crash the application on session store errors
-        },
-        // Re-enable session pruning since we're using the shared pool
-        pruneSessionInterval: 3600000, // Prune every hour (1 hour = 3600000 ms)
-      });
-      
-      console.log('[Auth] PostgreSQL session store configured successfully');
+      // Wrap the PostgreSQL session store creation in additional try/catch
+      try {
+        sessionStore = new pgStore({
+          pool: pool, // Use the pool from db.ts instead of connection string
+          createTableIfMissing: false,
+          ttl: sessionTtl / 1000, // convert to seconds for pg store
+          tableName: "sessions",
+          // Add error handling configuration
+          errorLog: (error: Error) => {
+            console.warn('[Auth] Session store error (non-fatal):', error.message);
+            // Don't crash the application on session store errors
+          },
+          // Re-enable session pruning since we're using the shared pool
+          pruneSessionInterval: 3600000, // Prune every hour (1 hour = 3600000 ms)
+        });
+        
+        pgStoreCreated = true;
+        console.log('[Auth] PostgreSQL session store configured successfully');
+      } catch (pgStoreError: any) {
+        console.warn('[Auth] Failed to create PostgreSQL session store instance:', pgStoreError.message);
+        sessionStore = null;
+      }
     } catch (error: any) {
       console.warn('[Auth] Failed to configure PostgreSQL session store:', error.message);
       console.log('[Auth] Falling back to in-memory session store');
       sessionStore = null; // Will use memory store below
     }
   } else {
-    console.log('[Auth] Database not available, using in-memory session store');
+    console.log('[Auth] Database pool not available, using in-memory session store');
   }
   
   // Fallback to in-memory session store
-  if (!sessionStore) {
-    const MemStore = MemoryStore(session);
-    sessionStore = new MemStore({
-      checkPeriod: 86400000, // prune expired entries every 24h
-      ttl: sessionTtl,
-      max: 1000, // limit to 1000 sessions to prevent memory issues
-    });
-    console.log('[Auth] In-memory session store configured');
+  if (!sessionStore || !pgStoreCreated) {
+    console.log('[Auth] Creating in-memory session store fallback');
+    try {
+      const MemStore = MemoryStore(session);
+      sessionStore = new MemStore({
+        checkPeriod: 86400000, // prune expired entries every 24h
+        ttl: sessionTtl,
+        max: 1000, // limit to 1000 sessions to prevent memory issues
+      });
+      console.log('[Auth] In-memory session store configured successfully');
+    } catch (memStoreError: any) {
+      console.error('[Auth] Critical: Failed to create in-memory session store:', memStoreError.message);
+      // This should never happen, but if it does, create the most basic store possible
+      sessionStore = undefined; // Let express-session handle it internally
+    }
   }
   
-  return session({
-    secret: process.env.SESSION_SECRET!,
+  // Create session configuration with robust error handling
+  const sessionConfig = {
+    secret: process.env.SESSION_SECRET || 'fallback-dev-secret-do-not-use-in-production',
     store: sessionStore,
     resave: false,
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      secure: true,
-      sameSite: 'lax', // CSRF protection
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const, // CSRF protection
       maxAge: sessionTtl,
     },
-  });
+  };
+  
+  try {
+    return session(sessionConfig);
+  } catch (sessionError: any) {
+    console.error('[Auth] Critical: Failed to create session middleware:', sessionError.message);
+    console.log('[Auth] Creating minimal session configuration');
+    
+    // Last resort: create the most basic session configuration
+    return session({
+      secret: process.env.SESSION_SECRET || 'emergency-fallback-secret',
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        secure: false, // Disable secure in emergency mode
+        maxAge: sessionTtl,
+      }
+    });
+  }
 }
 
 function updateUserSession(
@@ -270,47 +305,69 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  const user = req.user as any;
-  const session = req.session as any;
+  try {
+    const user = req.user as any;
+    const session = req.session as any;
 
-  // Check for Replit Auth (OIDC) authentication
-  if (req.isAuthenticated() && user.expires_at) {
-    const now = Math.floor(Date.now() / 1000);
-    
-    // Token is still valid
-    if (now <= user.expires_at) {
-      return next();
+    // Check for Replit Auth (OIDC) authentication
+    if (req.isAuthenticated() && user.expires_at) {
+      const now = Math.floor(Date.now() / 1000);
+      
+      // Token is still valid
+      if (now <= user.expires_at) {
+        return next();
+      }
+
+      // Try to refresh the token
+      const refreshToken = user.refresh_token;
+      if (refreshToken) {
+        try {
+          const config = await getOidcConfig();
+          const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
+          updateUserSession(user, tokenResponse);
+          return next();
+        } catch (error) {
+          // OIDC refresh failed, but don't return error yet - check local session
+        }
+      }
     }
 
-    // Try to refresh the token
-    const refreshToken = user.refresh_token;
-    if (refreshToken) {
+    // Check for local session authentication
+    if (session && session.userId) {
       try {
-        const config = await getOidcConfig();
-        const tokenResponse = await client.refreshTokenGrant(config, refreshToken);
-        updateUserSession(user, tokenResponse);
-        return next();
+        // Verify user still exists and is active
+        const user = await storage.getUser(session.userId);
+        if (user && user.isActive) {
+          // Record login activity (with database error protection)
+          try {
+            await storage.recordLogin(session.userId);
+          } catch (loginError) {
+            console.warn('[Auth] Failed to record login activity (non-fatal):', loginError);
+          }
+          return next();
+        }
       } catch (error) {
-        // OIDC refresh failed, but don't return error yet - check local session
+        console.warn('[Auth] Local session verification failed:', error);
+        // If database is down but session exists, continue in degraded mode
+        if (session.userId) {
+          console.log('[Auth] Allowing degraded authentication due to database unavailability');
+          return next();
+        }
       }
     }
-  }
 
-  // Check for local session authentication
-  if (session && session.userId) {
-    try {
-      // Verify user still exists and is active
-      const user = await storage.getUser(session.userId);
-      if (user && user.isActive) {
-        // Record login activity
-        await storage.recordLogin(session.userId);
-        return next();
-      }
-    } catch (error) {
-      // Local session verification failed
-    }
+    // Neither authentication method worked
+    return res.status(401).json({ 
+      message: process.env.NODE_ENV === 'production' ? "Unauthorized" : "Authentication required" 
+    });
+  } catch (criticalError: any) {
+    console.error('[Auth] Critical error in authentication middleware:', criticalError.message);
+    
+    // In case of critical errors, fail safely
+    return res.status(503).json({ 
+      message: process.env.NODE_ENV === 'production' 
+        ? "Service temporarily unavailable" 
+        : `Authentication service error: ${criticalError.message}` 
+    });
   }
-
-  // Neither authentication method worked
-  return res.status(401).json({ message: "Unauthorized" });
 };

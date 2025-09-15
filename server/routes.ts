@@ -118,8 +118,24 @@ async function createMonthlyMatches() {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Setup Replit Auth
-  await setupAuth(app);
+  // Setup Replit Auth with error isolation to ensure static files can still be served
+  try {
+    await setupAuth(app);
+    console.log('[Routes] Replit Auth configured successfully');
+  } catch (authError: any) {
+    console.error('[Routes] Failed to setup Replit Auth:', authError.message);
+    console.log('[Routes] Application will continue without auth features');
+    
+    // Provide minimal auth middleware that always returns unauthorized
+    // This ensures the app can still serve static files
+    app.use('/api/auth/*', (req, res) => {
+      res.status(503).json({ 
+        message: process.env.NODE_ENV === 'production' 
+          ? 'Authentication service temporarily unavailable' 
+          : `Auth setup failed: ${authError.message}` 
+      });
+    });
+  }
   
   // Health check endpoint with active database ping
   app.get('/api/health', async (req, res) => {

@@ -55,10 +55,42 @@ async function validateDatabaseAfterStartup(): Promise<void> {
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;
-    const message = err.message || "Internal Server Error";
+    
+    // Always log the full error details server-side for debugging
+    log(`Error: ${err.message || 'Unknown error'}`);
+    if (err.stack) {
+      console.error(err.stack);
+    }
+    
+    // Sanitize error response for production to prevent credential exposure
+    let message: string;
+    if (process.env.NODE_ENV === 'production') {
+      // In production, return generic error messages to prevent information leakage
+      switch (status) {
+        case 400:
+          message = "Bad Request";
+          break;
+        case 401:
+          message = "Unauthorized";
+          break;
+        case 403:
+          message = "Forbidden";
+          break;
+        case 404:
+          message = "Not Found";
+          break;
+        case 429:
+          message = "Too Many Requests";
+          break;
+        default:
+          message = "Internal Server Error";
+      }
+    } else {
+      // In development, return detailed error messages for debugging
+      message = err.message || "Internal Server Error";
+    }
 
     res.status(status).json({ message });
-    log(`Error: ${message}`);
   });
 
   // importantly only setup vite in development and after
