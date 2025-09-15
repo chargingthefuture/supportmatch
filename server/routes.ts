@@ -805,6 +805,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Announcement routes
+  // Public routes - accessible to all authenticated users
+  app.get("/api/announcements/active", async (req, res) => {
+    try {
+      const announcements = await storage.getActiveAnnouncements();
+      res.json(announcements);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get active announcements" });
+    }
+  });
+
+  app.get("/api/announcements/login", async (req, res) => {
+    try {
+      const announcements = await storage.getLoginAnnouncements();
+      res.json(announcements);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get login announcements" });
+    }
+  });
+
+  // Admin routes - announcement management
+  app.get("/api/admin/announcements", isAuthenticated, setUserId, requireAdmin, async (req, res) => {
+    try {
+      const announcements = await storage.getAllAnnouncements();
+      const announcementsWithCreator = await Promise.all(
+        announcements.map(async (announcement) => {
+          const creator = await storage.getUser(announcement.createdBy);
+          return {
+            ...announcement,
+            creator: creator ? { id: creator.id, name: creator.name, email: creator.email } : null
+          };
+        })
+      );
+      res.json(announcementsWithCreator);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get announcements" });
+    }
+  });
+
+  app.post("/api/admin/announcements", isAuthenticated, setUserId, requireAdmin, async (req: any, res: any) => {
+    try {
+      const { title, content, type, isActive, showOnLogin, expiresAt } = req.body;
+
+      if (!title || !content) {
+        return res.status(400).json({ message: "Title and content are required" });
+      }
+
+      const announcementData = {
+        title,
+        content,
+        type: type || "info",
+        isActive: isActive !== undefined ? isActive : true,
+        showOnLogin: showOnLogin !== undefined ? showOnLogin : true,
+        expiresAt: expiresAt ? new Date(expiresAt) : null,
+      };
+
+      const announcement = await storage.createAnnouncement(req.userId, announcementData);
+      res.status(201).json(announcement);
+    } catch (error) {
+      res.status(400).json({ message: error instanceof Error ? error.message : "Failed to create announcement" });
+    }
+  });
+
+  app.put("/api/admin/announcements/:id", isAuthenticated, setUserId, requireAdmin, async (req, res) => {
+    try {
+      const { title, content, type, isActive, showOnLogin, expiresAt } = req.body;
+      
+      const updates: any = {};
+      if (title !== undefined) updates.title = title;
+      if (content !== undefined) updates.content = content;
+      if (type !== undefined) updates.type = type;
+      if (isActive !== undefined) updates.isActive = isActive;
+      if (showOnLogin !== undefined) updates.showOnLogin = showOnLogin;
+      if (expiresAt !== undefined) updates.expiresAt = expiresAt ? new Date(expiresAt) : null;
+
+      const announcement = await storage.updateAnnouncement(req.params.id, updates);
+      if (!announcement) {
+        return res.status(404).json({ message: "Announcement not found" });
+      }
+      res.json(announcement);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update announcement" });
+    }
+  });
+
+  app.delete("/api/admin/announcements/:id", isAuthenticated, setUserId, requireAdmin, async (req, res) => {
+    try {
+      const announcement = await storage.deactivateAnnouncement(req.params.id);
+      if (!announcement) {
+        return res.status(404).json({ message: "Announcement not found" });
+      }
+      res.json({ message: "Announcement deactivated successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to deactivate announcement" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
