@@ -126,32 +126,6 @@ export default function CurrentPartnership({
             </div>
           </div>
 
-          {/* Partnership Goals */}
-          <div className="space-y-4">
-            <h4 className="font-semibold" data-testid="heading-week-goals">This Week's Goals</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-muted rounded-lg p-4" data-testid="card-daily-checkins">
-                <h5 className="font-medium mb-2">Daily Check-ins</h5>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Progress</span>
-                  <span className="text-sm font-medium" data-testid="text-checkin-progress">4/7 days</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                  <div className="bg-primary h-2 rounded-full" style={{width: "57%"}} data-testid="progress-checkins"></div>
-                </div>
-              </div>
-              <div className="bg-muted rounded-lg p-4" data-testid="card-support-sessions">
-                <h5 className="font-medium mb-2">Support Sessions</h5>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Completed</span>
-                  <span className="text-sm font-medium" data-testid="text-session-progress">2/2 sessions</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                  <div className="bg-green-500 h-2 rounded-full" style={{width: "100%"}} data-testid="progress-sessions"></div>
-                </div>
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>
