@@ -36,9 +36,7 @@ function encodeInviteCodeInState(inviteCode?: string): string | undefined {
   }
 }
 
-if (!process.env.REPLIT_DOMAINS) {
-  throw new Error("Environment variable REPLIT_DOMAINS not provided");
-}
+// REPLIT_DOMAINS check moved to setupAuth function to prevent module-level crashes
 
 const getOidcConfig = memoize(
   async () => {
@@ -201,6 +199,15 @@ async function upsertUser(
 }
 
 export async function setupAuth(app: Express) {
+  // Check for required environment variables
+  if (!process.env.REPLIT_DOMAINS) {
+    console.warn('[Auth] REPLIT_DOMAINS not configured - authentication will be limited');
+    // Still set up basic session middleware for app to function
+    app.set("trust proxy", 1);
+    app.use(getSession());
+    return; // Exit early without full auth setup
+  }
+
   app.set("trust proxy", 1);
   app.use(getSession());
   app.use(passport.initialize());
@@ -226,24 +233,30 @@ export async function setupAuth(app: Express) {
     }
   };
 
-  for (const domain of process.env
-    .REPLIT_DOMAINS!.split(",")) {
-    const strategy = new Strategy(
-      {
-        name: `replitauth:${domain}`,
-        config,
-        scope: "openid email profile offline_access",
-        callbackURL: `https://${domain}/api/callback`,
-      },
-      verify,
-    );
-    passport.use(strategy);
+  if (process.env.REPLIT_DOMAINS) {
+    for (const domain of process.env
+      .REPLIT_DOMAINS.split(",")) {
+      const strategy = new Strategy(
+        {
+          name: `replitauth:${domain}`,
+          config,
+          scope: "openid email profile offline_access",
+          callbackURL: `https://${domain}/api/callback`,
+        },
+        verify,
+      );
+      passport.use(strategy);
+    }
   }
 
   passport.serializeUser((user: Express.User, cb) => cb(null, user));
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
+    if (!process.env.REPLIT_DOMAINS) {
+      return res.status(503).json({ message: "Authentication service unavailable" });
+    }
+    
     // Extract invite code from query parameters
     const inviteCode = req.query.inviteCode as string;
     
@@ -261,6 +274,10 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/callback", (req, res, next) => {
+    if (!process.env.REPLIT_DOMAINS) {
+      return res.status(503).json({ message: "Authentication service unavailable" });
+    }
+    
     passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any, info: any) => {
       if (err) {
         // Handle invite code validation errors
@@ -293,6 +310,10 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/logout", (req, res) => {
+    if (!process.env.REPLIT_DOMAINS) {
+      return res.status(503).json({ message: "Authentication service unavailable" });
+    }
+    
     req.logout(() => {
       res.redirect(
         client.buildEndSessionUrl(config, {
