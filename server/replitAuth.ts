@@ -7,7 +7,9 @@ import session from "express-session";
 import type { Express, RequestHandler } from "express";
 import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
+import MemoryStore from "memorystore";
 import { storage } from "./storage";
+import { pool, isDbConnected } from "./db";
 
 // Helper function to extract invite code from OAuth state parameter
 function extractInviteCodeFromState(state?: string): string | undefined {
@@ -50,13 +52,50 @@ const getOidcConfig = memoize(
 
 export function getSession() {
   const sessionTtl = 7 * 24 * 60 * 60 * 1000; // 1 week
-  const pgStore = connectPg(session);
-  const sessionStore = new pgStore({
-    conString: process.env.DATABASE_URL,
-    createTableIfMissing: false,
-    ttl: sessionTtl,
-    tableName: "sessions",
-  });
+  
+  let sessionStore: any;
+  
+  // Try to use PostgreSQL session store if database is available
+  if (pool && process.env.DATABASE_URL) {
+    try {
+      console.log('[Auth] Attempting to use PostgreSQL session store');
+      const pgStore = connectPg(session);
+      
+      sessionStore = new pgStore({
+        pool: pool, // Use the pool from db.ts instead of connection string
+        createTableIfMissing: false,
+        ttl: sessionTtl / 1000, // convert to seconds for pg store
+        tableName: "sessions",
+        // Add error handling configuration
+        errorLog: (error: Error) => {
+          console.warn('[Auth] Session store error (non-fatal):', error.message);
+          // Don't crash the application on session store errors
+        },
+        // Disable automatic session pruning to prevent auth failures
+        pruneSessionInterval: false,
+      });
+      
+      console.log('[Auth] PostgreSQL session store configured successfully');
+    } catch (error: any) {
+      console.warn('[Auth] Failed to configure PostgreSQL session store:', error.message);
+      console.log('[Auth] Falling back to in-memory session store');
+      sessionStore = null; // Will use memory store below
+    }
+  } else {
+    console.log('[Auth] Database not available, using in-memory session store');
+  }
+  
+  // Fallback to in-memory session store
+  if (!sessionStore) {
+    const MemStore = MemoryStore(session);
+    sessionStore = new MemStore({
+      checkPeriod: 86400000, // prune expired entries every 24h
+      ttl: sessionTtl,
+      max: 1000, // limit to 1000 sessions to prevent memory issues
+    });
+    console.log('[Auth] In-memory session store configured');
+  }
+  
   return session({
     secret: process.env.SESSION_SECRET!,
     store: sessionStore,
