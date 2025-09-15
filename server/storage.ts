@@ -1,6 +1,6 @@
-import { type User, type InsertUser, type UpsertUser, type RegisterUser, type Partnership, type Message, type InsertMessage, type Exclusion, type InsertExclusion, type Report, type InsertReport, type InviteCode, type InsertInviteCode, users, partnerships, messages, exclusions, reports, inviteCodes } from "@shared/schema";
+import { type User, type InsertUser, type UpsertUser, type RegisterUser, type Partnership, type Message, type InsertMessage, type Exclusion, type InsertExclusion, type Report, type InsertReport, type InviteCode, type InsertInviteCode, type Announcement, type InsertAnnouncement, users, partnerships, messages, exclusions, reports, inviteCodes, announcements } from "@shared/schema";
 import { db, withRetry, validateConnection, validateSchemaWithRetry } from "./db";
-import { eq, and, or, lte, desc } from "drizzle-orm";
+import { eq, and, or, lte, gte, desc, isNull } from "drizzle-orm";
 
 export interface IStorage {
   // User methods
@@ -51,6 +51,15 @@ export interface IStorage {
   getAllInviteCodes(): Promise<InviteCode[]>;
   markInviteCodeAsUsed(code: string, usedBy: string): Promise<InviteCode | undefined>;
   deactivateInviteCode(code: string): Promise<InviteCode | undefined>;
+
+  // Announcement methods
+  createAnnouncement(createdBy: string, announcement: InsertAnnouncement): Promise<Announcement>;
+  getAllAnnouncements(): Promise<Announcement[]>;
+  getActiveAnnouncements(): Promise<Announcement[]>;
+  getLoginAnnouncements(): Promise<Announcement[]>;
+  getAnnouncement(id: string): Promise<Announcement | undefined>;
+  updateAnnouncement(id: string, updates: Partial<Announcement>): Promise<Announcement | undefined>;
+  deactivateAnnouncement(id: string): Promise<Announcement | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -468,6 +477,86 @@ export class DatabaseStorage implements IStorage {
       .returning();
     
     return inviteCode || undefined;
+  }
+
+  // Announcement methods
+  async createAnnouncement(createdBy: string, announcement: InsertAnnouncement): Promise<Announcement> {
+    const [newAnnouncement] = await db
+      .insert(announcements)
+      .values({
+        ...announcement,
+        createdBy,
+      })
+      .returning();
+    return newAnnouncement;
+  }
+
+  async getAllAnnouncements(): Promise<Announcement[]> {
+    return await db
+      .select()
+      .from(announcements)
+      .orderBy(desc(announcements.createdAt));
+  }
+
+  async getActiveAnnouncements(): Promise<Announcement[]> {
+    const now = new Date();
+    return await db
+      .select()
+      .from(announcements)
+      .where(
+        and(
+          eq(announcements.isActive, true),
+          or(
+            isNull(announcements.expiresAt),
+            gte(announcements.expiresAt, now)
+          )
+        )
+      )
+      .orderBy(desc(announcements.createdAt));
+  }
+
+  async getLoginAnnouncements(): Promise<Announcement[]> {
+    const now = new Date();
+    return await db
+      .select()
+      .from(announcements)
+      .where(
+        and(
+          eq(announcements.isActive, true),
+          eq(announcements.showOnLogin, true),
+          or(
+            isNull(announcements.expiresAt),
+            gte(announcements.expiresAt, now)
+          )
+        )
+      )
+      .orderBy(desc(announcements.createdAt));
+  }
+
+  async getAnnouncement(id: string): Promise<Announcement | undefined> {
+    const [announcement] = await db
+      .select()
+      .from(announcements)
+      .where(eq(announcements.id, id));
+    return announcement || undefined;
+  }
+
+  async updateAnnouncement(id: string, updates: Partial<Announcement>): Promise<Announcement | undefined> {
+    const [announcement] = await db
+      .update(announcements)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(announcements.id, id))
+      .returning();
+    return announcement || undefined;
+  }
+
+  async deactivateAnnouncement(id: string): Promise<Announcement | undefined> {
+    const [announcement] = await db
+      .update(announcements)
+      .set({ isActive: false, updatedAt: new Date() })
+      .where(eq(announcements.id, id))
+      .returning();
+    return announcement || undefined;
   }
 }
 
