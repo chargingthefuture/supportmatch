@@ -144,6 +144,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       try {
         const dbPingPromise = (async () => {
+          if (!pool) {
+            throw new Error('Database pool not available');
+          }
           const queryStart = Date.now();
           // Perform lightweight ping to test actual connectivity
           await pool.query('SELECT 1 as health_check');
@@ -200,6 +203,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Readiness endpoint for deployment platforms
   app.get('/api/ready', async (req, res) => {
     try {
+      if (!pool) {
+        throw new Error('Database pool not available');
+      }
       // Quick database connectivity test with short timeout
       await Promise.race([
         pool.query('SELECT 1'),

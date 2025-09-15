@@ -37,18 +37,20 @@ app.use((req, res, next) => {
   next();
 });
 
-(async () => {
+// Non-blocking database validation function
+async function validateDatabaseAfterStartup(): Promise<void> {
   try {
-    // Validate database connection before starting the application
     log('Validating database connection...');
     await validateConnection();
     log('Database connection validated successfully');
   } catch (error: any) {
-    log(`Failed to validate database connection: ${error.message}`);
-    log('Application startup aborted due to database connection failure');
-    process.exit(1);
+    log(`Warning: Database connection validation failed: ${error.message}`);
+    log('Application will continue running but database operations may fail');
+    log('Please check PROD_DATABASE_URL configuration in deployment settings');
   }
-  
+}
+
+(async () => {
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -89,6 +91,9 @@ app.use((req, res, next) => {
   // Change server.listen() to use port and host directly instead of object configuration
   server.listen(port, host, () => {
     log(`serving on port ${port}`);
+    
+    // Validate database connection after server starts (non-blocking)
+    validateDatabaseAfterStartup();
   });
 
   // Add error handling for server startup

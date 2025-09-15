@@ -12,11 +12,13 @@ neonConfig.fetchConnectionCache = true; // Enable connection caching for better 
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Get the appropriate database URL based on environment
-function getDatabaseUrl(): string {
+function getDatabaseUrl(): string | null {
   // In production, PROD_DATABASE_URL is required - never fall back to dev DB
   if (isProduction) {
     if (!process.env.PROD_DATABASE_URL) {
-      throw new Error("PROD_DATABASE_URL must be set for production environment. Did you forget to provision a production database?");
+      console.warn("[DB] PROD_DATABASE_URL not set for production environment. Database operations will fail.");
+      console.warn("[DB] Please set PROD_DATABASE_URL in your deployment configuration.");
+      return null;
     }
     return process.env.PROD_DATABASE_URL;
   }
@@ -26,7 +28,8 @@ function getDatabaseUrl(): string {
     return process.env.DATABASE_URL;
   }
 
-  throw new Error("DATABASE_URL must be set. Did you forget to provision a database?");
+  console.warn("[DB] DATABASE_URL not set for development environment. Database operations will fail.");
+  return null;
 }
 
 const databaseUrl = getDatabaseUrl();
@@ -45,7 +48,11 @@ const retryConfig: RetryConfig = {
 };
 
 // Connection validation with retry logic
-async function validateDatabaseConnection(pool: Pool): Promise<boolean> {
+async function validateDatabaseConnection(pool: Pool | null): Promise<boolean> {
+  if (!pool) {
+    throw new Error("Database pool is not available. Please check database configuration.");
+  }
+  
   for (let attempt = 1; attempt <= retryConfig.maxRetries; attempt++) {
     try {
       console.log(`[DB] Validating connection (attempt ${attempt}/${retryConfig.maxRetries})`);
@@ -77,24 +84,34 @@ async function validateDatabaseConnection(pool: Pool): Promise<boolean> {
   return false;
 }
 
-// Create pool with optimized settings for Neon serverless
-const poolConfig = {
-  connectionString: databaseUrl,
-  max: 3, // Reduced for serverless - fewer connections reduce cold start issues
-  idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
-  connectionTimeoutMillis: 15000, // Increased timeout for cold starts
-};
+// Create pool with optimized settings for Neon serverless (if database URL is available)
+let poolConfig: any = null;
+let pool: Pool | null = null;
+let db: any = null;
 
-// Log which database is being used (minimal info in production)
-if (isProduction) {
-  console.log(`[DB] Connecting to production database (env: production)`);
+if (databaseUrl) {
+  poolConfig = {
+    connectionString: databaseUrl,
+    max: 3, // Reduced for serverless - fewer connections reduce cold start issues
+    idleTimeoutMillis: 30000, // Close idle connections after 30 seconds
+    connectionTimeoutMillis: 15000, // Increased timeout for cold starts
+  };
+
+  // Log which database is being used (minimal info in production)
+  if (isProduction) {
+    console.log(`[DB] Connecting to production database (env: production)`);
+  } else {
+    const urlMasked = databaseUrl.replace(/:[^:@]*@/, ':****@');
+    console.log(`[DB] Connecting to database: ${urlMasked} (env: ${process.env.NODE_ENV || 'development'})`);
+  }
+
+  pool = new Pool(poolConfig);
+  db = drizzle({ client: pool, schema });
 } else {
-  const urlMasked = databaseUrl.replace(/:[^:@]*@/, ':****@');
-  console.log(`[DB] Connecting to database: ${urlMasked} (env: ${process.env.NODE_ENV || 'development'})`);
+  console.warn("[DB] Database URL not available. Database operations will be disabled.");
 }
 
-export const pool = new Pool(poolConfig);
-export const db = drizzle({ client: pool, schema });
+export { pool, db };
 
 // Database connection status
 let isConnectionValidated = false;
@@ -117,6 +134,11 @@ export const isDbConnected = (): boolean => isConnectionValidated;
 
 // Schema validation - check if required tables exist
 export async function validateSchema(): Promise<boolean> {
+  if (!pool) {
+    console.warn('[DB] Schema validation skipped - database pool not available');
+    return false;
+  }
+  
   try {
     // Check if users table exists by querying the information schema
     const result = await pool.query(`
