@@ -12,6 +12,7 @@ import { Link } from "wouter";
 import { LogIn, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import AnnouncementDisplay from "@/components/announcement-display";
 
 // Login schema matching backend
 const loginSchema = z.object({
@@ -61,7 +62,11 @@ function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md shadow-xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
+      <div className="w-full max-w-md space-y-4">
+        {/* Login Announcements */}
+        <AnnouncementDisplay showLoginOnly={true} maxCount={3} />
+        
+        <Card className="shadow-xl bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm">
         <CardHeader className="space-y-1">
           <div className="flex items-center justify-between">
             <Link href="/" data-testid="link-back">
@@ -186,7 +191,8 @@ function Login() {
             </p>
           </div>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

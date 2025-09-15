@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertMessageSchema, insertExclusionSchema, insertReportSchema, insertInviteCodeSchema, registerUserSchema, loginUserSchema, adminBootstrapSchema } from "@shared/schema";
+import { insertUserSchema, insertMessageSchema, insertExclusionSchema, insertReportSchema, insertInviteCodeSchema, insertAnnouncementSchema, registerUserSchema, loginUserSchema, adminBootstrapSchema } from "@shared/schema";
 import { z } from "zod";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import bcrypt from "bcryptjs";
@@ -870,15 +870,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.put("/api/admin/announcements/:id", isAuthenticated, setUserId, requireAdmin, async (req, res) => {
     try {
-      const { title, content, type, isActive, showOnLogin, expiresAt } = req.body;
+      // Validate using partial schema, only allow safe fields
+      const allowedFields = insertAnnouncementSchema.partial().pick({
+        title: true,
+        content: true, 
+        type: true,
+        isActive: true,
+        showOnLogin: true,
+        expiresAt: true
+      });
       
-      const updates: any = {};
-      if (title !== undefined) updates.title = title;
-      if (content !== undefined) updates.content = content;
-      if (type !== undefined) updates.type = type;
-      if (isActive !== undefined) updates.isActive = isActive;
-      if (showOnLogin !== undefined) updates.showOnLogin = showOnLogin;
-      if (expiresAt !== undefined) updates.expiresAt = expiresAt ? new Date(expiresAt) : null;
+      const validatedData = allowedFields.parse(req.body);
+      
+      // Always set updatedAt server-side, never trust client
+      const updates = {
+        ...validatedData,
+        expiresAt: validatedData.expiresAt ? new Date(validatedData.expiresAt) : null,
+        updatedAt: new Date()
+      };
 
       const announcement = await storage.updateAnnouncement(req.params.id, updates);
       if (!announcement) {
@@ -886,6 +895,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       res.json(announcement);
     } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Invalid input", 
+          errors: error.errors.map(e => `${e.path.join('.')}: ${e.message}`) 
+        });
+      }
       res.status(500).json({ message: "Failed to update announcement" });
     }
   });

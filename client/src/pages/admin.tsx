@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { User, Partnership } from "@shared/schema";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { User, Partnership, Announcement, InsertAnnouncement, insertAnnouncementSchema } from "@shared/schema";
 import Header from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +13,10 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -29,7 +35,12 @@ import {
   Key,
   Plus,
   Trash2,
-  Copy
+  Copy,
+  Megaphone,
+  Info,
+  Zap,
+  Edit,
+  X
 } from "lucide-react";
 
 interface AdminStats {
@@ -66,6 +77,10 @@ interface PartnershipWithUsers extends Partnership {
   user2: { id: string; name: string; email: string } | null;
 }
 
+interface AnnouncementWithCreator extends Announcement {
+  creator: { id: string; name: string; email: string } | null;
+}
+
 interface AdminProps {
   user: User;
 }
@@ -74,7 +89,23 @@ export default function Admin({ user }: AdminProps) {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [newInviteMaxUses, setNewInviteMaxUses] = useState("1");
   const [newInviteExpires, setNewInviteExpires] = useState("");
+  const [showCreateAnnouncementDialog, setShowCreateAnnouncementDialog] = useState(false);
+  const [showEditAnnouncementDialog, setShowEditAnnouncementDialog] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<AnnouncementWithCreator | null>(null);
   const { toast } = useToast();
+
+  // Announcement form setup
+  const announcementForm = useForm<InsertAnnouncement>({
+    resolver: zodResolver(insertAnnouncementSchema),
+    defaultValues: {
+      title: "",
+      content: "",
+      type: "info",
+      isActive: true,
+      showOnLogin: true,
+      expiresAt: null,
+    },
+  });
 
   // Fetch admin stats
   const { data: stats, isLoading: statsLoading } = useQuery<AdminStats>({
@@ -97,6 +128,12 @@ export default function Admin({ user }: AdminProps) {
   const { data: partnerships = [], isLoading: partnershipsLoading } = useQuery<PartnershipWithUsers[]>({
     queryKey: ['/api/admin/partnerships'],
     enabled: activeTab === 'dashboard',
+  });
+
+  // Fetch announcements
+  const { data: announcements = [], isLoading: announcementsLoading } = useQuery<AnnouncementWithCreator[]>({
+    queryKey: ['/api/admin/announcements'],
+    enabled: activeTab === 'announcements',
   });
 
   // Create matches mutation
@@ -189,6 +226,74 @@ export default function Admin({ user }: AdminProps) {
     },
   });
 
+  // Create announcement mutation
+  const createAnnouncement = useMutation({
+    mutationFn: async (data: InsertAnnouncement) => {
+      return apiRequest('POST', '/api/admin/announcements', data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Announcement Created",
+        description: "New announcement has been created successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/announcements'] });
+      announcementForm.reset();
+      setShowCreateAnnouncementDialog(false);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create announcement",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Update announcement mutation
+  const updateAnnouncement = useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<InsertAnnouncement> }) => {
+      return apiRequest('PUT', `/api/admin/announcements/${id}`, data);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Announcement Updated",
+        description: "Announcement has been updated successfully.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/announcements'] });
+      announcementForm.reset();
+      setShowEditAnnouncementDialog(false);
+      setEditingAnnouncement(null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update announcement",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Deactivate announcement mutation
+  const deactivateAnnouncement = useMutation({
+    mutationFn: async (id: string) => {
+      return apiRequest('DELETE', `/api/admin/announcements/${id}`);
+    },
+    onSuccess: () => {
+      toast({
+        title: "Announcement Deactivated",
+        description: "Announcement has been deactivated.",
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/admin/announcements'] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to deactivate announcement",
+        variant: "destructive",
+      });
+    },
+  });
+
   const getInitials = (name: string | null) => {
     if (!name || typeof name !== 'string') {
       return 'TU';
@@ -245,6 +350,56 @@ export default function Admin({ user }: AdminProps) {
     await deactivateInviteCode.mutateAsync(code);
   };
 
+  // Announcement handlers
+  const handleCreateAnnouncement = async (data: InsertAnnouncement) => {
+    await createAnnouncement.mutateAsync(data);
+  };
+
+  const handleUpdateAnnouncement = async (data: InsertAnnouncement) => {
+    if (editingAnnouncement) {
+      await updateAnnouncement.mutateAsync({ id: editingAnnouncement.id, data });
+    }
+  };
+
+  const handleEditAnnouncement = (announcement: AnnouncementWithCreator) => {
+    setEditingAnnouncement(announcement);
+    announcementForm.reset({
+      title: announcement.title,
+      content: announcement.content,
+      type: announcement.type || "info",
+      isActive: announcement.isActive,
+      showOnLogin: announcement.showOnLogin,
+      expiresAt: announcement.expiresAt || null,
+    });
+    setShowEditAnnouncementDialog(true);
+  };
+
+  const handleDeactivateAnnouncement = async (id: string) => {
+    await deactivateAnnouncement.mutateAsync(id);
+  };
+
+  const getAnnouncementTypeIcon = (type: string) => {
+    switch (type) {
+      case "warning": return AlertTriangle;
+      case "maintenance": return Settings;
+      case "update": return Zap;
+      case "promotion": return Megaphone;
+      case "info":
+      default: return Info;
+    }
+  };
+
+  const getAnnouncementTypeBadge = (type: string) => {
+    switch (type) {
+      case "warning": return "bg-red-100 text-red-800 border-red-200";
+      case "maintenance": return "bg-orange-100 text-orange-800 border-orange-200";
+      case "update": return "bg-blue-100 text-blue-800 border-blue-200";
+      case "promotion": return "bg-purple-100 text-purple-800 border-purple-200";
+      case "info":
+      default: return "bg-blue-100 text-blue-800 border-blue-200";
+    }
+  };
+
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
@@ -282,7 +437,7 @@ export default function Admin({ user }: AdminProps) {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4" data-testid="tabs-admin">
+          <TabsList className="grid w-full grid-cols-5" data-testid="tabs-admin">
             <TabsTrigger value="dashboard" data-testid="tab-dashboard">
               <Settings className="w-4 h-4 mr-2" />
               Dashboard
@@ -294,6 +449,10 @@ export default function Admin({ user }: AdminProps) {
             <TabsTrigger value="invites" data-testid="tab-invites">
               <Key className="w-4 h-4 mr-2" />
               Invite Codes
+            </TabsTrigger>
+            <TabsTrigger value="announcements" data-testid="tab-announcements">
+              <Megaphone className="w-4 h-4 mr-2" />
+              Announcements ({announcements.filter(a => a.isActive).length})
             </TabsTrigger>
             <TabsTrigger value="system" data-testid="tab-system">
               <Shield className="w-4 h-4 mr-2" />
@@ -829,6 +988,440 @@ export default function Admin({ user }: AdminProps) {
                 </ScrollArea>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Announcements Tab */}
+          <TabsContent value="announcements" className="space-y-6">
+            <Card data-testid="card-announcement-management">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle>Announcement Management</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      Create and manage system announcements for users.
+                    </p>
+                  </div>
+                  <Dialog open={showCreateAnnouncementDialog} onOpenChange={setShowCreateAnnouncementDialog}>
+                    <DialogTrigger asChild>
+                      <Button data-testid="button-create-announcement">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Create Announcement
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Create New Announcement</DialogTitle>
+                      </DialogHeader>
+                      <Form {...announcementForm}>
+                        <form onSubmit={announcementForm.handleSubmit(handleCreateAnnouncement)} className="space-y-4">
+                          <FormField
+                            control={announcementForm.control}
+                            name="title"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Title</FormLabel>
+                                <FormControl>
+                                  <Input {...field} data-testid="input-announcement-title" />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <FormField
+                            control={announcementForm.control}
+                            name="content"
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel>Content</FormLabel>
+                                <FormControl>
+                                  <Textarea 
+                                    {...field} 
+                                    className="min-h-[100px]" 
+                                    data-testid="textarea-announcement-content" 
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                          
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <FormField
+                              control={announcementForm.control}
+                              name="type"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Type</FormLabel>
+                                  <Select onValueChange={field.onChange} value={field.value || "info"}>
+                                    <FormControl>
+                                      <SelectTrigger data-testid="select-announcement-type">
+                                        <SelectValue placeholder="Select type" />
+                                      </SelectTrigger>
+                                    </FormControl>
+                                    <SelectContent>
+                                      <SelectItem value="info">Info</SelectItem>
+                                      <SelectItem value="warning">Warning</SelectItem>
+                                      <SelectItem value="maintenance">Maintenance</SelectItem>
+                                      <SelectItem value="update">Update</SelectItem>
+                                      <SelectItem value="promotion">Promotion</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={announcementForm.control}
+                              name="expiresAt"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Expires At (Optional)</FormLabel>
+                                  <FormControl>
+                                    <Input
+                                      {...field}
+                                      type="datetime-local"
+                                      value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
+                                      onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value).toISOString() : null)}
+                                      data-testid="input-announcement-expires"
+                                    />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <div className="flex items-center space-x-6">
+                            <FormField
+                              control={announcementForm.control}
+                              name="isActive"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                      data-testid="switch-announcement-active"
+                                    />
+                                  </FormControl>
+                                  <FormLabel>Active</FormLabel>
+                                </FormItem>
+                              )}
+                            />
+                            
+                            <FormField
+                              control={announcementForm.control}
+                              name="showOnLogin"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value}
+                                      onCheckedChange={field.onChange}
+                                      data-testid="switch-announcement-show-login"
+                                    />
+                                  </FormControl>
+                                  <FormLabel>Show on Login</FormLabel>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
+
+                          <div className="flex justify-end space-x-2 pt-4">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => setShowCreateAnnouncementDialog(false)}
+                              data-testid="button-cancel-announcement"
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              type="submit"
+                              disabled={createAnnouncement.isPending}
+                              data-testid="button-save-announcement"
+                            >
+                              {createAnnouncement.isPending ? "Creating..." : "Create Announcement"}
+                            </Button>
+                          </div>
+                        </form>
+                      </Form>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {announcementsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="text-muted-foreground">Loading announcements...</div>
+                  </div>
+                ) : announcements.length === 0 ? (
+                  <div className="text-center py-8">
+                    <Megaphone className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold mb-2">No Announcements</h3>
+                    <p className="text-muted-foreground">
+                      No announcements have been created yet. Create your first announcement to get started.
+                    </p>
+                  </div>
+                ) : (
+                  <ScrollArea className="h-96">
+                    <Table data-testid="table-announcements">
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Title</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Show on Login</TableHead>
+                          <TableHead>Created</TableHead>
+                          <TableHead>Expires</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {announcements.map((announcement) => {
+                          const IconComponent = getAnnouncementTypeIcon(announcement.type || "info");
+                          const badgeStyles = getAnnouncementTypeBadge(announcement.type || "info");
+                          const isExpired = announcement.expiresAt && new Date(announcement.expiresAt) < new Date();
+                          
+                          return (
+                            <TableRow key={announcement.id} data-testid={`row-announcement-${announcement.id}`}>
+                              <TableCell>
+                                <div className="flex items-start space-x-3 max-w-xs">
+                                  <div className="flex-shrink-0">
+                                    <IconComponent className="w-4 h-4 mt-1 text-muted-foreground" />
+                                  </div>
+                                  <div>
+                                    <p className="font-medium text-sm" data-testid={`announcement-title-${announcement.id}`}>
+                                      {announcement.title}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground line-clamp-2">
+                                      {announcement.content.length > 100 
+                                        ? announcement.content.substring(0, 100) + "..." 
+                                        : announcement.content}
+                                    </p>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge className={badgeStyles} data-testid={`announcement-type-${announcement.id}`}>
+                                  {announcement.type || "info"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex flex-col space-y-1">
+                                  <Badge 
+                                    variant={announcement.isActive && !isExpired ? "default" : "secondary"}
+                                    data-testid={`announcement-status-${announcement.id}`}
+                                  >
+                                    {isExpired ? "Expired" : announcement.isActive ? "Active" : "Inactive"}
+                                  </Badge>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge 
+                                  variant={announcement.showOnLogin ? "default" : "outline"}
+                                  data-testid={`announcement-login-${announcement.id}`}
+                                >
+                                  {announcement.showOnLogin ? "Yes" : "No"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell data-testid={`announcement-created-${announcement.id}`}>
+                                <div className="text-sm">
+                                  {formatDate(announcement.createdAt)}
+                                  <div className="text-xs text-muted-foreground">
+                                    by {announcement.creator?.name || "Unknown"}
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell data-testid={`announcement-expires-${announcement.id}`}>
+                                {announcement.expiresAt ? (
+                                  <span className={`text-sm ${isExpired ? "text-red-600" : ""}`}>
+                                    {formatDate(announcement.expiresAt)}
+                                  </span>
+                                ) : (
+                                  <span className="text-sm text-muted-foreground">Never</span>
+                                )}
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center space-x-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEditAnnouncement(announcement)}
+                                    data-testid={`button-edit-announcement-${announcement.id}`}
+                                  >
+                                    <Edit className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeactivateAnnouncement(announcement.id)}
+                                    data-testid={`button-deactivate-announcement-${announcement.id}`}
+                                  >
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  </ScrollArea>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Edit Announcement Dialog */}
+            <Dialog open={showEditAnnouncementDialog} onOpenChange={setShowEditAnnouncementDialog}>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Edit Announcement</DialogTitle>
+                </DialogHeader>
+                <Form {...announcementForm}>
+                  <form onSubmit={announcementForm.handleSubmit(handleUpdateAnnouncement)} className="space-y-4">
+                    <FormField
+                      control={announcementForm.control}
+                      name="title"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Title</FormLabel>
+                          <FormControl>
+                            <Input {...field} data-testid="input-edit-announcement-title" />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={announcementForm.control}
+                      name="content"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Content</FormLabel>
+                          <FormControl>
+                            <Textarea 
+                              {...field} 
+                              className="min-h-[100px]" 
+                              data-testid="textarea-edit-announcement-content" 
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <FormField
+                        control={announcementForm.control}
+                        name="type"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Type</FormLabel>
+                            <Select onValueChange={field.onChange} value={field.value}>
+                              <FormControl>
+                                <SelectTrigger data-testid="select-edit-announcement-type">
+                                  <SelectValue placeholder="Select type" />
+                                </SelectTrigger>
+                              </FormControl>
+                              <SelectContent>
+                                <SelectItem value="info">Info</SelectItem>
+                                <SelectItem value="warning">Warning</SelectItem>
+                                <SelectItem value="maintenance">Maintenance</SelectItem>
+                                <SelectItem value="update">Update</SelectItem>
+                                <SelectItem value="promotion">Promotion</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={announcementForm.control}
+                        name="expiresAt"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Expires At (Optional)</FormLabel>
+                            <FormControl>
+                              <Input
+                                {...field}
+                                type="datetime-local"
+                                value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
+                                onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value).toISOString() : null)}
+                                data-testid="input-edit-announcement-expires"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-6">
+                      <FormField
+                        control={announcementForm.control}
+                        name="isActive"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                data-testid="switch-edit-announcement-active"
+                              />
+                            </FormControl>
+                            <FormLabel>Active</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={announcementForm.control}
+                        name="showOnLogin"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <Switch
+                                checked={field.value}
+                                onCheckedChange={field.onChange}
+                                data-testid="switch-edit-announcement-show-login"
+                              />
+                            </FormControl>
+                            <FormLabel>Show on Login</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <div className="flex justify-end space-x-2 pt-4">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setShowEditAnnouncementDialog(false);
+                          setEditingAnnouncement(null);
+                          announcementForm.reset();
+                        }}
+                        data-testid="button-cancel-edit-announcement"
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={updateAnnouncement.isPending}
+                        data-testid="button-update-announcement"
+                      >
+                        {updateAnnouncement.isPending ? "Updating..." : "Update Announcement"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              </DialogContent>
+            </Dialog>
           </TabsContent>
 
           {/* System Tab */}
