@@ -13,22 +13,21 @@ const isProduction = process.env.NODE_ENV === 'production';
 
 // Get the appropriate database URL based on environment
 function getDatabaseUrl(): string | null {
-  // In production, PROD_DATABASE_URL is required - never fall back to dev DB
-  if (isProduction) {
-    if (!process.env.PROD_DATABASE_URL) {
-      console.warn("[DB] PROD_DATABASE_URL not set for production environment. Database operations will fail.");
-      console.warn("[DB] Please set PROD_DATABASE_URL in your deployment configuration.");
-      return null;
-    }
-    return process.env.PROD_DATABASE_URL;
-  }
-  
-  // In development, use DATABASE_URL
+  // For both production and development, use DATABASE_URL as the standard
+  // Replit deployment provides DATABASE_URL in all environments
   if (process.env.DATABASE_URL) {
     return process.env.DATABASE_URL;
   }
 
-  console.warn("[DB] DATABASE_URL not set for development environment. Database operations will fail.");
+  // Fallback to PROD_DATABASE_URL for backward compatibility
+  if (isProduction && process.env.PROD_DATABASE_URL) {
+    console.log("[DB] Using PROD_DATABASE_URL as fallback in production");
+    return process.env.PROD_DATABASE_URL;
+  }
+
+  const env = isProduction ? 'production' : 'development';
+  console.warn(`[DB] DATABASE_URL not set for ${env} environment. Database operations will fail.`);
+  console.warn("[DB] Please set DATABASE_URL in your deployment configuration.");
   return null;
 }
 

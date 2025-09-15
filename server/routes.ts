@@ -234,6 +234,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!userId) {
         return res.status(401).json({ message: "User ID not found" });
       }
+
+      // Check if database is available before attempting to fetch user
+      if (!pool || !isDbConnected()) {
+        console.warn("[API] Database unavailable, returning minimal user info");
+        // Return minimal user info based on authentication claims when DB is down
+        const minimalUser: {
+          id: string;
+          isAuthenticated: boolean;
+          dbUnavailable: boolean;
+          email?: string;
+          firstName?: string;
+          lastName?: string;
+        } = {
+          id: userId,
+          isAuthenticated: true,
+          dbUnavailable: true
+        };
+        
+        // Try to extract basic info from OIDC claims if available
+        if (req.user?.claims) {
+          const claims = req.user.claims;
+          minimalUser.email = claims.email;
+          minimalUser.firstName = claims.given_name || claims.name?.split(' ')[0];
+          minimalUser.lastName = claims.family_name || claims.name?.split(' ').slice(1).join(' ');
+        }
+        
+        return res.json(minimalUser);
+      }
+
       const user = await storage.getUser(userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
@@ -254,6 +283,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(mappedUser);
     } catch (error) {
       console.error("Error fetching user:", error);
+      
+      // If database error but user is authenticated, return minimal info
+      if (req.userId) {
+        console.warn("[API] Database error, returning minimal user info");
+        const minimalUser: {
+          id: string;
+          isAuthenticated: boolean;
+          dbError: boolean;
+          email?: string;
+          firstName?: string;
+          lastName?: string;
+        } = {
+          id: req.userId,
+          isAuthenticated: true,
+          dbError: true
+        };
+        
+        // Try to extract basic info from OIDC claims if available
+        if (req.user?.claims) {
+          const claims = req.user.claims;
+          minimalUser.email = claims.email;
+          minimalUser.firstName = claims.given_name || claims.name?.split(' ')[0];
+          minimalUser.lastName = claims.family_name || claims.name?.split(' ').slice(1).join(' ');
+        }
+        
+        return res.json(minimalUser);
+      }
+      
       res.status(500).json({ message: "Failed to fetch user" });
     }
   });

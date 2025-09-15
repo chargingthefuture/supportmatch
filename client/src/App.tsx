@@ -3,7 +3,7 @@ import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth, isCompleteUser } from "@/hooks/useAuth";
 
 import NotFound from "./pages/not-found";
 import Dashboard from "./pages/dashboard";
@@ -15,7 +15,7 @@ import Register from "./pages/register";
 import Login from "./pages/login";
 
 function Router() {
-  const { user, isAuthenticated, isLoading } = useAuth();
+  const { user, isAuthenticated, isLoading, dbUnavailable, dbError, hasLimitedData } = useAuth();
 
   const handleUserUpdate = (updatedUser: any) => {
     // Invalidate user query to trigger a refresh
@@ -30,9 +30,28 @@ function Router() {
     );
   }
 
+  // Show notification if database is unavailable but user is authenticated
+  const dbStatusMessage = dbUnavailable 
+    ? "Database temporarily unavailable - some features may be limited" 
+    : dbError 
+    ? "Database connection issues - some data may not be current"
+    : null;
+
   return (
-    <Switch>
-      {isLoading || !isAuthenticated ? (
+    <div className="min-h-screen bg-background">
+      {/* Database status notification */}
+      {dbStatusMessage && isAuthenticated && (
+        <div className="bg-yellow-50 dark:bg-yellow-900/20 border-b border-yellow-200 dark:border-yellow-800 px-4 py-2">
+          <div className="flex items-center justify-center">
+            <div className="text-sm text-yellow-800 dark:text-yellow-200 text-center">
+              ⚠️ {dbStatusMessage}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      <Switch>
+        {isLoading || !isAuthenticated ? (
         <>
           <Route path="/" component={Landing} />
           <Route path="/register" component={Register} />
@@ -41,13 +60,18 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={Home} />
-          <Route path="/dashboard" component={() => <Dashboard user={user!} />} />
-          <Route path="/profile" component={() => <Profile user={user!} onUserUpdate={handleUserUpdate} />} />
-          {user?.isAdmin && <Route path="/admin" component={() => <Admin user={user!} />} />}
+          {isCompleteUser(user) && (
+            <>
+              <Route path="/dashboard" component={() => <Dashboard user={user} />} />
+              <Route path="/profile" component={() => <Profile user={user} onUserUpdate={handleUserUpdate} />} />
+              {user.isAdmin && <Route path="/admin" component={() => <Admin user={user} />} />}
+            </>
+          )}
         </>
       )}
       <Route component={NotFound} />
-    </Switch>
+      </Switch>
+    </div>
   );
 }
 
