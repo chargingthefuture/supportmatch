@@ -888,6 +888,7 @@ export default function Admin({ user }: AdminProps) {
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead>#</TableHead>
                         <TableHead>Code</TableHead>
                         <TableHead>Created By</TableHead>
                         <TableHead>Usage</TableHead>
@@ -900,19 +901,24 @@ export default function Admin({ user }: AdminProps) {
                     <TableBody>
                       {inviteCodesLoading ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center">
+                          <TableCell colSpan={8} className="text-center">
                             Loading invite codes...
                           </TableCell>
                         </TableRow>
                       ) : inviteCodes.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={7} className="text-center text-muted-foreground">
+                          <TableCell colSpan={8} className="text-center text-muted-foreground">
                             No invite codes generated yet.
                           </TableCell>
                         </TableRow>
                       ) : (
-                        inviteCodes.map((code) => (
+                        inviteCodes.map((code, index) => (
                           <TableRow key={code.id} data-testid={`row-invite-${code.code}`}>
+                            <TableCell>
+                              <span className="text-sm font-medium text-muted-foreground">
+                                {index + 1}
+                              </span>
+                            </TableCell>
                             <TableCell>
                               <div className="flex items-center space-x-2">
                                 <code className="bg-muted px-2 py-1 rounded text-sm font-mono">
