@@ -126,7 +126,7 @@ export default function AnnouncementsPage({ user }: AnnouncementsPageProps) {
             Announcements
           </h1>
           <p className="text-muted-foreground">
-            Stay up to date with the latest news and updates from TI Partners.
+            Stay up to date with the latest news and updates.
           </p>
         </div>
 
