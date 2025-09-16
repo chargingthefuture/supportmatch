@@ -855,7 +855,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/admin/announcements", isAuthenticated, setUserId, requireAdmin, async (req: any, res: any) => {
     try {
-      const { title, content, type, isActive, showOnLogin, expiresAt } = req.body;
+      const { title, content, type, isActive, showOnLogin, showOnSignInPage, expiresAt } = req.body;
 
       if (!title || !content) {
         return res.status(400).json({ message: "Title and content are required" });
@@ -867,6 +867,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: type || "info",
         isActive: isActive !== undefined ? isActive : true,
         showOnLogin: showOnLogin !== undefined ? showOnLogin : true,
+        showOnSignInPage: showOnSignInPage !== undefined ? showOnSignInPage : false,
         expiresAt: expiresAt ? new Date(expiresAt) : null,
       };
 
@@ -886,6 +887,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: true,
         isActive: true,
         showOnLogin: true,
+        showOnSignInPage: true,
         expiresAt: true
       });
       
