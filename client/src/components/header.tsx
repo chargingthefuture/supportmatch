@@ -143,8 +143,8 @@ export default function Header({ user, hasActiveMatch }: HeaderProps) {
 
           <div className="flex items-center space-x-4">
             {hasActiveMatch && (
-              <div className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-xs font-medium" data-testid="status-active-match">
-                <div className="w-2 h-2 bg-green-500 rounded-full inline-block mr-1"></div>
+              <div className="bg-green-100 dark:bg-green-900 text-green-800 dark:text-green-200 px-3 py-1 rounded-full text-xs font-medium" data-testid="status-active-match">
+                <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full inline-block mr-1"></div>
                 Active Match
               </div>
             )}

@@ -14,7 +14,8 @@ import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, UserX, Settings, Trash2 } from "lucide-react";
+import { useTheme } from "@/hooks/useTheme";
+import { Shield, UserX, Settings, Trash2, Palette, Sun, Moon, Monitor } from "lucide-react";
 import { z } from "zod";
 
 const updateProfileSchema = insertUserSchema.pick({
@@ -36,15 +37,16 @@ interface ExclusionWithUser {
 }
 
 export default function Profile({ user, onUserUpdate }: ProfileProps) {
-  const [activeSection, setActiveSection] = useState<'profile' | 'exclusions' | 'privacy'>('profile');
+  const [activeSection, setActiveSection] = useState<'profile' | 'exclusions' | 'privacy' | 'appearance'>('profile');
   const { toast } = useToast();
+  const { theme, setTheme, actualTheme } = useTheme();
 
   // Check for tab parameter in URL on component mount
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const tab = urlParams.get('tab');
-    if (tab === 'exclusions' || tab === 'privacy') {
-      setActiveSection(tab);
+    if (tab === 'exclusions' || tab === 'privacy' || tab === 'appearance') {
+      setActiveSection(tab as 'profile' | 'exclusions' | 'privacy' | 'appearance');
     }
   }, []);
 
@@ -183,6 +185,18 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
             >
               <Shield className="w-4 h-4 inline mr-2" />
               Privacy
+            </button>
+            <button
+              onClick={() => setActiveSection('appearance')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeSection === 'appearance'
+                  ? 'border-primary text-primary'
+                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+              }`}
+              data-testid="tab-appearance"
+            >
+              <Palette className="w-4 h-4 inline mr-2" />
+              Appearance
             </button>
           </nav>
         </div>
@@ -459,6 +473,122 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                         day: 'numeric',
                         year: 'numeric' 
                       })}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Appearance Section */}
+        {activeSection === 'appearance' && (
+          <Card data-testid="section-appearance">
+            <CardHeader>
+              <CardTitle>Appearance</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Customize the look and feel of the application.
+              </p>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div>
+                <h4 className="font-semibold mb-3">Theme</h4>
+                <div className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Choose your preferred theme or let the system decide based on your device settings.
+                  </p>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <button
+                      onClick={() => setTheme('light')}
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        theme === 'light'
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-border/80'
+                      }`}
+                      data-testid="theme-light"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Sun className="w-5 h-5 text-amber-500" />
+                        <div className="text-left">
+                          <p className="font-medium">Light</p>
+                          <p className="text-sm text-muted-foreground">Bright and clean</p>
+                        </div>
+                      </div>
+                    </button>
+                    
+                    <button
+                      onClick={() => setTheme('dark')}
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        theme === 'dark'
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-border/80'
+                      }`}
+                      data-testid="theme-dark"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Moon className="w-5 h-5 text-blue-500" />
+                        <div className="text-left">
+                          <p className="font-medium">Dark</p>
+                          <p className="text-sm text-muted-foreground">Easy on the eyes</p>
+                        </div>
+                      </div>
+                    </button>
+                    
+                    <button
+                      onClick={() => setTheme('system')}
+                      className={`p-4 rounded-lg border-2 transition-all ${
+                        theme === 'system'
+                          ? 'border-primary bg-primary/5'
+                          : 'border-border hover:border-border/80'
+                      }`}
+                      data-testid="theme-system"
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Monitor className="w-5 h-5 text-slate-500" />
+                        <div className="text-left">
+                          <p className="font-medium">System</p>
+                          <p className="text-sm text-muted-foreground">Matches device</p>
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h4 className="font-semibold mb-3">Current Settings</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 border border-border rounded-lg">
+                    <div>
+                      <p className="font-medium">Active theme</p>
+                      <p className="text-sm text-muted-foreground">
+                        Currently using {actualTheme} mode
+                      </p>
+                    </div>
+                    <Badge variant="outline" data-testid="badge-active-theme">
+                      {actualTheme === 'dark' ? (
+                        <><Moon className="w-3 h-3 mr-1" /> Dark</>
+                      ) : (
+                        <><Sun className="w-3 h-3 mr-1" /> Light</>
+                      )}
+                    </Badge>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 border border-border rounded-lg">
+                    <div>
+                      <p className="font-medium">Theme preference</p>
+                      <p className="text-sm text-muted-foreground">
+                        Your selected theme setting
+                      </p>
+                    </div>
+                    <Badge variant="secondary" data-testid="badge-theme-preference">
+                      {theme === 'system' && <Monitor className="w-3 h-3 mr-1" />}
+                      {theme === 'light' && <Sun className="w-3 h-3 mr-1" />}
+                      {theme === 'dark' && <Moon className="w-3 h-3 mr-1" />}
+                      {theme.charAt(0).toUpperCase() + theme.slice(1)}
                     </Badge>
                   </div>
                 </div>
