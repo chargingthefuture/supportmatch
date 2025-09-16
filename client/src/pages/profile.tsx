@@ -456,6 +456,7 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                     <Badge variant="outline" data-testid="badge-member-since">
                       {new Date(user.createdAt!).toLocaleDateString('en-US', { 
                         month: 'long', 
+                        day: 'numeric',
                         year: 'numeric' 
                       })}
                     </Badge>
