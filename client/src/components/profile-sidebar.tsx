@@ -59,7 +59,7 @@ export default function ProfileSidebar({
             <div className="flex justify-between">
               <span className="text-muted-foreground">Member Since:</span>
               <span className="font-medium" data-testid="text-member-since">
-                {new Date(user.createdAt!).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
+                {new Date(user.createdAt!).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </span>
             </div>
           </div>
