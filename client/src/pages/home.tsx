@@ -115,7 +115,6 @@ function Home() {
             <CardContent>
               <Button 
                 asChild 
-                variant="outline" 
                 className="w-full"
                 data-testid="button-announcements"
               >
