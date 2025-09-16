@@ -101,26 +101,6 @@ function Home() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center space-x-3">
-                <MessageSquare className="h-8 w-8 text-green-600" />
-                <div>
-                  <CardTitle>Messages</CardTitle>
-                  <CardDescription>Chat with your connections</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                asChild 
-                className="w-full"
-                data-testid="button-messages"
-              >
-                <Link href="/dashboard">View Messages</Link>
-              </Button>
-            </CardContent>
-          </Card>
 
           <Card className="hover:shadow-lg transition-shadow">
             <CardHeader>
