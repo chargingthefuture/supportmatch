@@ -9,6 +9,8 @@ import { Announcement } from "@shared/schema";
 interface AnnouncementDisplayProps {
   /** Whether to show login announcements or all active ones */
   showLoginOnly?: boolean;
+  /** Whether to show sign-in page announcements (pre-login) */
+  showSignInOnly?: boolean;
   /** Custom className for styling */
   className?: string;
   /** Maximum number of announcements to show */
@@ -77,7 +79,8 @@ const getAnnouncementTextColor = (type: string) => {
 };
 
 export default function AnnouncementDisplay({ 
-  showLoginOnly = false, 
+  showLoginOnly = false,
+  showSignInOnly = false, 
   className = "",
   maxCount 
 }: AnnouncementDisplayProps) {
@@ -96,8 +99,18 @@ export default function AnnouncementDisplay({
   }, []);
 
   // Fetch announcements based on context
+  const getQueryKey = () => {
+    if (showSignInOnly) {
+      return ['/api/announcements/signin'];
+    }
+    if (showLoginOnly === false) {
+      return ['/api/announcements/login']; // Post-login announcements
+    }
+    return ['/api/announcements/active']; // Default to all active
+  };
+
   const { data: announcements = [], isLoading } = useQuery<Announcement[]>({
-    queryKey: showLoginOnly ? ['/api/announcements/login'] : ['/api/announcements/active'],
+    queryKey: getQueryKey(),
   });
 
   const dismissAnnouncement = (announcementId: string) => {

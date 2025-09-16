@@ -72,9 +72,9 @@ function Home() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Login Announcements */}
+        {/* Post-Login Announcements */}
         <AnnouncementDisplay 
-          showLoginOnly={true}
+          showLoginOnly={false}
           className="mb-8"
           maxCount={3}
         />
