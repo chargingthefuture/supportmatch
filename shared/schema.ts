@@ -98,6 +98,7 @@ export const announcements = pgTable("announcements", {
   type: announcementTypeEnum("type").default("info"),
   isActive: boolean("is_active").default(true),
   showOnLogin: boolean("show_on_login").default(true),
+  showOnSignInPage: boolean("show_on_sign_in_page").default(false),
   createdBy: varchar("created_by").notNull().references(() => users.id),
   expiresAt: timestamp("expires_at"), // Optional expiration date
   createdAt: timestamp("created_at").defaultNow(),
@@ -148,6 +149,7 @@ export const insertAnnouncementSchema = createInsertSchema(announcements).pick({
   type: true,
   isActive: true,
   showOnLogin: true,
+  showOnSignInPage: true,
   expiresAt: true,
 }).extend({
   title: z.string().min(1, "Title is required"),

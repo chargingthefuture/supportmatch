@@ -57,6 +57,7 @@ export interface IStorage {
   getAllAnnouncements(): Promise<Announcement[]>;
   getActiveAnnouncements(): Promise<Announcement[]>;
   getLoginAnnouncements(): Promise<Announcement[]>;
+  getSignInPageAnnouncements(): Promise<Announcement[]>;
   getAnnouncement(id: string): Promise<Announcement | undefined>;
   updateAnnouncement(id: string, updates: Partial<Announcement>): Promise<Announcement | undefined>;
   deactivateAnnouncement(id: string): Promise<Announcement | undefined>;
@@ -524,6 +525,24 @@ export class DatabaseStorage implements IStorage {
         and(
           eq(announcements.isActive, true),
           eq(announcements.showOnLogin, true),
+          or(
+            isNull(announcements.expiresAt),
+            gte(announcements.expiresAt, now)
+          )
+        )
+      )
+      .orderBy(desc(announcements.createdAt));
+  }
+
+  async getSignInPageAnnouncements(): Promise<Announcement[]> {
+    const now = new Date();
+    return await db
+      .select()
+      .from(announcements)
+      .where(
+        and(
+          eq(announcements.isActive, true),
+          eq(announcements.showOnSignInPage, true),
           or(
             isNull(announcements.expiresAt),
             gte(announcements.expiresAt, now)
