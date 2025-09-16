@@ -85,8 +85,8 @@ function Home() {
               <div className="flex items-center space-x-3">
                 <Users className="h-8 w-8 text-blue-600" />
                 <div>
-                  <CardTitle>Dashboard</CardTitle>
-                  <CardDescription>View your matches and partnerships</CardDescription>
+                  <CardTitle>Matches</CardTitle>
+                  <CardDescription>Interact and manage your matches</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -96,7 +96,7 @@ function Home() {
                 className="w-full"
                 data-testid="button-dashboard"
               >
-                <Link href="/dashboard">View Dashboard</Link>
+                <Link href="/dashboard">View All</Link>
               </Button>
             </CardContent>
           </Card>
