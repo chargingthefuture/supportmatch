@@ -556,43 +556,6 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                 </div>
               </div>
 
-              <Separator />
-
-              <div>
-                <h4 className="font-semibold mb-3">Current Settings</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                    <div>
-                      <p className="font-medium">Active theme</p>
-                      <p className="text-sm text-muted-foreground">
-                        Currently using {actualTheme} mode
-                      </p>
-                    </div>
-                    <Badge variant="outline" data-testid="badge-active-theme">
-                      {actualTheme === 'dark' ? (
-                        <><Moon className="w-3 h-3 mr-1" /> Dark</>
-                      ) : (
-                        <><Sun className="w-3 h-3 mr-1" /> Light</>
-                      )}
-                    </Badge>
-                  </div>
-                  
-                  <div className="flex items-center justify-between p-3 border border-border rounded-lg">
-                    <div>
-                      <p className="font-medium">Theme preference</p>
-                      <p className="text-sm text-muted-foreground">
-                        Your selected theme setting
-                      </p>
-                    </div>
-                    <Badge variant="secondary" data-testid="badge-theme-preference">
-                      {theme === 'system' && <Monitor className="w-3 h-3 mr-1" />}
-                      {theme === 'light' && <Sun className="w-3 h-3 mr-1" />}
-                      {theme === 'dark' && <Moon className="w-3 h-3 mr-1" />}
-                      {theme.charAt(0).toUpperCase() + theme.slice(1)}
-                    </Badge>
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         )}
