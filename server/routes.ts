@@ -894,9 +894,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const validatedData = allowedFields.parse(req.body);
       
       // Always set updatedAt server-side, never trust client
+      // The schema transform already handles string->Date conversion for expiresAt
       const updates = {
         ...validatedData,
-        expiresAt: validatedData.expiresAt ? new Date(validatedData.expiresAt) : null,
         updatedAt: new Date()
       };
 

@@ -154,6 +154,12 @@ export const insertAnnouncementSchema = createInsertSchema(announcements).pick({
 }).extend({
   title: z.string().min(1, "Title is required"),
   content: z.string().min(1, "Content is required"),
+  expiresAt: z.union([z.date(), z.string(), z.null()]).optional().transform((val) => {
+    if (!val || val === null) return null;
+    if (val instanceof Date) return val;
+    if (typeof val === 'string') return new Date(val);
+    return null;
+  }),
 });
 
 export const insertMessageSchema = createInsertSchema(messages).pick({

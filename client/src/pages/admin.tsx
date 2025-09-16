@@ -358,7 +358,12 @@ export default function Admin({ user }: AdminProps) {
 
   const handleUpdateAnnouncement = async (data: InsertAnnouncement) => {
     if (editingAnnouncement) {
-      await updateAnnouncement.mutateAsync({ id: editingAnnouncement.id, data });
+      // Normalize data to prevent string/date validation issues
+      const normalizedData = {
+        ...data,
+        expiresAt: data.expiresAt ? (data.expiresAt instanceof Date ? data.expiresAt : new Date(data.expiresAt)) : null,
+      };
+      await updateAnnouncement.mutateAsync({ id: editingAnnouncement.id, data: normalizedData });
     }
   };
 
