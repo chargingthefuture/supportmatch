@@ -53,11 +53,11 @@ export default function ProfileSidebar({
           </div>
           <div className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Partnerships:</span>
+              <span className="text-muted-foreground">Matches:</span>
               <span className="font-medium" data-testid="text-partnership-count">{partnershipCount}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Member Since:</span>
+              <span className="text-muted-foreground">Joined:</span>
               <span className="font-medium" data-testid="text-member-since">
                 {new Date(user.createdAt!).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </span>

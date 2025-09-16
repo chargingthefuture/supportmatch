@@ -104,8 +104,8 @@ export default function MatchHistory({ currentUser, onExcludeUser }: MatchHistor
         ) : partnerships.length === 0 ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-center text-muted-foreground">
-              <p>No partnership history yet.</p>
-              <p className="text-sm">Your completed partnerships will appear here.</p>
+              <p>No match history yet.</p>
+              <p className="text-sm">Your past matches will appear here.</p>
             </div>
           </div>
         ) : (

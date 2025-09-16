@@ -11,15 +11,12 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>(() => {
-    // Get initial theme from localStorage or default to system
-    const stored = localStorage.getItem("theme") as Theme;
-    return stored || "system";
-  });
-
+  const [theme, setTheme] = useState<Theme>("system");
   const [actualTheme, setActualTheme] = useState<"light" | "dark">("light");
+  const [isInitialized, setIsInitialized] = useState(false);
 
   const getSystemTheme = (): "light" | "dark" => {
+    if (typeof window === "undefined") return "light";
     return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
   };
 
@@ -34,20 +31,40 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     setActualTheme(resolvedTheme);
 
-    // Apply theme to document
-    const root = document.documentElement;
-    if (resolvedTheme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
+    // Apply theme to document (only on client-side)
+    if (typeof document !== "undefined") {
+      const root = document.documentElement;
+      if (resolvedTheme === "dark") {
+        root.classList.add("dark");
+      } else {
+        root.classList.remove("dark");
+      }
     }
 
-    // Store theme preference
-    localStorage.setItem("theme", newTheme);
+    // Store theme preference (only on client-side)
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("theme", newTheme);
+    }
   };
 
+  // Initialize theme from localStorage on mount
   useEffect(() => {
-    updateTheme(theme);
+    const initializeTheme = () => {
+      const stored = localStorage.getItem("theme") as Theme;
+      const initialTheme = stored || "system";
+      setTheme(initialTheme);
+      updateTheme(initialTheme);
+      setIsInitialized(true);
+    };
+
+    initializeTheme();
+  }, []);
+
+  // Update theme when it changes
+  useEffect(() => {
+    if (isInitialized) {
+      updateTheme(theme);
+    }
 
     // Listen for system theme changes when theme is set to "system"
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
@@ -59,7 +76,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     mediaQuery.addEventListener("change", handleChange);
     return () => mediaQuery.removeEventListener("change", handleChange);
-  }, [theme]);
+  }, [theme, isInitialized]);
 
   const handleSetTheme = (newTheme: Theme) => {
     setTheme(newTheme);
