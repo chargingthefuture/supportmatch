@@ -124,27 +124,6 @@ function Home() {
             </CardContent>
           </Card>
 
-          <Card className="hover:shadow-lg transition-shadow">
-            <CardHeader>
-              <div className="flex items-center space-x-3">
-                <Settings className="h-8 w-8 text-gray-600" />
-                <div>
-                  <CardTitle>Settings</CardTitle>
-                  <CardDescription>Update your preferences</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                asChild 
-                variant="outline" 
-                className="w-full"
-                data-testid="button-settings"
-              >
-                <Link href="/profile">Edit Profile</Link>
-              </Button>
-            </CardContent>
-          </Card>
         </div>
 
       </div>
