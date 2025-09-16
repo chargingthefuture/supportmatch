@@ -369,7 +369,7 @@ export default function Admin({ user }: AdminProps) {
       type: announcement.type || "info",
       isActive: announcement.isActive,
       showOnLogin: announcement.showOnLogin,
-      expiresAt: announcement.expiresAt || null,
+      expiresAt: announcement.expiresAt ? new Date(announcement.expiresAt) : null,
     });
     setShowEditAnnouncementDialog(true);
   };
@@ -1085,7 +1085,7 @@ export default function Admin({ user }: AdminProps) {
                                       {...field}
                                       type="datetime-local"
                                       value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
-                                      onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value).toISOString() : null)}
+                                      onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
                                       data-testid="input-announcement-expires"
                                     />
                                   </FormControl>
@@ -1353,7 +1353,7 @@ export default function Admin({ user }: AdminProps) {
                                 {...field}
                                 type="datetime-local"
                                 value={field.value ? new Date(field.value).toISOString().slice(0, 16) : ""}
-                                onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value).toISOString() : null)}
+                                onChange={(e) => field.onChange(e.target.value ? new Date(e.target.value) : null)}
                                 data-testid="input-edit-announcement-expires"
                               />
                             </FormControl>
