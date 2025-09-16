@@ -419,10 +419,10 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                     <div>
                       <p className="font-medium">Message history</p>
                       <p className="text-sm text-muted-foreground">
-                        Your messages are stored securely during partnerships
+                        Your messages are stored securely. But accessible by Support Match team for support purposes.
                       </p>
                     </div>
-                    <Badge variant="secondary" data-testid="badge-message-storage">Not Encrypted</Badge>
+                    <Badge variant="secondary" data-testid="badge-message-storage">Not End to End Encrypted</Badge>
                   </div>
                 </div>
               </div>
@@ -436,7 +436,7 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                     <div>
                       <p className="font-medium">Account active</p>
                       <p className="text-sm text-muted-foreground">
-                        You're eligible for new partnerships
+                        You're eligible for new matches
                       </p>
                     </div>
                     <Badge 

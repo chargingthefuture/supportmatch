@@ -54,7 +54,7 @@ function Register() {
     onSuccess: () => {
       toast({
         title: "Registration successful!",
-        description: "Welcome to TI Partners. You're now logged in.",
+        description: "Welcome to Support Match. You're now logged in.",
       });
       queryClient.invalidateQueries({ queryKey: ["/api/auth/user"] });
       setLocation("/");

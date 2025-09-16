@@ -1,10 +1,10 @@
-# Support Match - TI Accountability Network
+# Support Match - A TI Accountability Network
 
 ## Overview
 
-TI Partners is a web-based accountability partnership matching system designed to create safe, supportive relationships for personal growth and accountability. The application facilitates month-long partnerships between users with similar preferences and goals, providing a structured environment for mutual support while maintaining user safety through comprehensive reporting and exclusion mechanisms.
+Support Match is a web-based accountability matching system designed to create safe, supportive relationships for personal growth and accountability. The application facilitates month-long matches between users with similar preferences and goals, providing a structured environment for mutual support while maintaining user safety through comprehensive reporting and exclusion mechanisms.
 
-The system operates on a matching algorithm that considers user preferences, gender compatibility, and mutual exclusions to create meaningful partnerships. Each partnership includes built-in messaging capabilities, progress tracking, and safety features to ensure a positive experience for all participants.
+The system operates on a matching algorithm that considers user preferences, gender compatibility, and mutual exclusions to create meaningful matches. Each match includes built-in messaging capabilities and safety features to ensure a positive experience for all participants.
 
 ## User Preferences
 
@@ -56,7 +56,7 @@ Preferred communication style: Simple, everyday language.
 ### Communication Features
 - **In-app Messaging**: Real-time messaging system within partnerships
 - **Message Persistence**: All partnership communications are stored and retrievable
-- **Partnership Duration**: Fixed monthly partnership periods with clear start and end dates
+- **Match Duration**: Fixed monthly partnership periods with clear start and end dates
 
 ## External Dependencies
 
