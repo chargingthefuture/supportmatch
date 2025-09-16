@@ -825,6 +825,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  app.get("/api/announcements/signin", async (req, res) => {
+    try {
+      const announcements = await storage.getSignInPageAnnouncements();
+      res.json(announcements);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to get sign-in page announcements" });
+    }
+  });
+
   // Admin routes - announcement management
   app.get("/api/admin/announcements", isAuthenticated, setUserId, requireAdmin, async (req, res) => {
     try {
