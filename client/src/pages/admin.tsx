@@ -103,6 +103,7 @@ export default function Admin({ user }: AdminProps) {
       type: "info",
       isActive: true,
       showOnLogin: true,
+      showOnSignInPage: false,
       expiresAt: null,
     },
   });
@@ -369,6 +370,7 @@ export default function Admin({ user }: AdminProps) {
       type: announcement.type || "info",
       isActive: announcement.isActive,
       showOnLogin: announcement.showOnLogin,
+      showOnSignInPage: announcement.showOnSignInPage,
       expiresAt: announcement.expiresAt ? new Date(announcement.expiresAt) : null,
     });
     setShowEditAnnouncementDialog(true);
@@ -1129,6 +1131,23 @@ export default function Admin({ user }: AdminProps) {
                                 </FormItem>
                               )}
                             />
+                            
+                            <FormField
+                              control={announcementForm.control}
+                              name="showOnSignInPage"
+                              render={({ field }) => (
+                                <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                                  <FormControl>
+                                    <Switch
+                                      checked={field.value ?? false}
+                                      onCheckedChange={field.onChange}
+                                      data-testid="switch-announcement-show-signin"
+                                    />
+                                  </FormControl>
+                                  <FormLabel>Show on Sign-In Page</FormLabel>
+                                </FormItem>
+                              )}
+                            />
                           </div>
 
                           <div className="flex justify-end space-x-2 pt-4">
@@ -1394,6 +1413,23 @@ export default function Admin({ user }: AdminProps) {
                               />
                             </FormControl>
                             <FormLabel>Show on Login</FormLabel>
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={announcementForm.control}
+                        name="showOnSignInPage"
+                        render={({ field }) => (
+                          <FormItem className="flex flex-row items-center space-x-3 space-y-0">
+                            <FormControl>
+                              <Switch
+                                checked={field.value ?? false}
+                                onCheckedChange={field.onChange}
+                                data-testid="switch-edit-announcement-show-signin"
+                              />
+                            </FormControl>
+                            <FormLabel>Show on Sign-In Page</FormLabel>
                           </FormItem>
                         )}
                       />
