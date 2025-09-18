@@ -6,16 +6,38 @@ import { User, insertUserSchema } from "@shared/schema";
 import Header from "@/components/header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { apiRequest } from "@/lib/queryClient";
 import { queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "@/hooks/useTheme";
-import { Shield, UserX, Settings, Trash2, Palette, Sun, Moon, Monitor } from "lucide-react";
+import {
+  Shield,
+  UserX,
+  Settings,
+  Trash2,
+  Palette,
+  Sun,
+  Moon,
+  Monitor,
+} from "lucide-react";
 import { z } from "zod";
 
 const updateProfileSchema = insertUserSchema.pick({
@@ -37,16 +59,20 @@ interface ExclusionWithUser {
 }
 
 export default function Profile({ user, onUserUpdate }: ProfileProps) {
-  const [activeSection, setActiveSection] = useState<'profile' | 'exclusions' | 'privacy' | 'appearance'>('profile');
+  const [activeSection, setActiveSection] = useState<
+    "profile" | "exclusions" | "privacy" | "appearance"
+  >("profile");
   const { toast } = useToast();
   const { theme, setTheme, actualTheme } = useTheme();
 
   // Check for tab parameter in URL on component mount
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const tab = urlParams.get('tab');
-    if (tab === 'exclusions' || tab === 'privacy' || tab === 'appearance') {
-      setActiveSection(tab as 'profile' | 'exclusions' | 'privacy' | 'appearance');
+    const tab = urlParams.get("tab");
+    if (tab === "exclusions" || tab === "privacy" || tab === "appearance") {
+      setActiveSection(
+        tab as "profile" | "exclusions" | "privacy" | "appearance",
+      );
     }
   }, []);
 
@@ -60,15 +86,17 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
   });
 
   // Fetch exclusions
-  const { data: exclusions = [], isLoading: exclusionsLoading } = useQuery<ExclusionWithUser[]>({
-    queryKey: ['/api/exclusions'],
-    enabled: activeSection === 'exclusions',
+  const { data: exclusions = [], isLoading: exclusionsLoading } = useQuery<
+    ExclusionWithUser[]
+  >({
+    queryKey: ["/api/exclusions"],
+    enabled: activeSection === "exclusions",
   });
 
   // Update profile mutation
   const updateProfile = useMutation({
     mutationFn: async (data: z.infer<typeof updateProfileSchema>) => {
-      return apiRequest('PUT', '/api/users/me', data);
+      return apiRequest("PUT", "/api/users/me", data);
     },
     onSuccess: (response: Response) => {
       response.json().then((updatedUser: User) => {
@@ -97,14 +125,14 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
   // Remove exclusion mutation (for future implementation)
   const removeExclusion = useMutation({
     mutationFn: async (exclusionId: string) => {
-      return apiRequest('DELETE', `/api/exclusions/${exclusionId}`);
+      return apiRequest("DELETE", `/api/exclusions/${exclusionId}`);
     },
     onSuccess: () => {
       toast({
         title: "Exclusion Removed",
         description: "The user exclusion has been removed.",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/exclusions'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/exclusions"] });
     },
     onError: (error: any) => {
       toast({
@@ -120,19 +148,18 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
   };
 
   const formatGender = (gender: string | null) => {
-    if (!gender) return 'Not specified';
-    return gender.charAt(0).toUpperCase() + gender.slice(1).replace('_', ' ');
+    if (!gender) return "Not specified";
+    return gender.charAt(0).toUpperCase() + gender.slice(1).replace("_", " ");
   };
 
-
   const getInitials = (name: string | null) => {
-    if (!name || typeof name !== 'string') {
-      return 'TU';
+    if (!name || typeof name !== "string") {
+      return "TU";
     }
     return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
       .toUpperCase()
       .slice(0, 2);
   };
@@ -140,22 +167,29 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
   return (
     <div className="min-h-screen bg-background" data-testid="page-profile">
       <Header user={user} />
-      
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-semibold mb-2" data-testid="heading-profile">Profile & Settings</h1>
-          <p className="text-muted-foreground">Manage your account, privacy settings, and safety preferences.</p>
+          <h1
+            className="text-3xl font-semibold mb-2"
+            data-testid="heading-profile"
+          >
+            Profile & Settings
+          </h1>
+          <p className="text-muted-foreground">
+            Manage your account, privacy settings, and safety preferences.
+          </p>
         </div>
 
         {/* Navigation Tabs */}
         <div className="border-b border-border mb-8">
           <nav className="flex space-x-8">
             <button
-              onClick={() => setActiveSection('profile')}
+              onClick={() => setActiveSection("profile")}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeSection === 'profile'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                activeSection === "profile"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
               }`}
               data-testid="tab-profile"
             >
@@ -163,11 +197,11 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
               Profile
             </button>
             <button
-              onClick={() => setActiveSection('exclusions')}
+              onClick={() => setActiveSection("exclusions")}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeSection === 'exclusions'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                activeSection === "exclusions"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
               }`}
               data-testid="tab-exclusions"
             >
@@ -175,11 +209,11 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
               Exclusions ({exclusions.length})
             </button>
             <button
-              onClick={() => setActiveSection('privacy')}
+              onClick={() => setActiveSection("privacy")}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeSection === 'privacy'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                activeSection === "privacy"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
               }`}
               data-testid="tab-privacy"
             >
@@ -187,11 +221,11 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
               Privacy
             </button>
             <button
-              onClick={() => setActiveSection('appearance')}
+              onClick={() => setActiveSection("appearance")}
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                activeSection === 'appearance'
-                  ? 'border-primary text-primary'
-                  : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
+                activeSection === "appearance"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground hover:border-border"
               }`}
               data-testid="tab-appearance"
             >
@@ -202,7 +236,7 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
         </div>
 
         {/* Profile Section */}
-        {activeSection === 'profile' && (
+        {activeSection === "profile" && (
           <Card data-testid="section-profile">
             <CardHeader>
               <CardTitle>Profile Information</CardTitle>
@@ -212,7 +246,10 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-6"
+                >
                   <FormField
                     control={form.control}
                     name="name"
@@ -220,8 +257,8 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                       <FormItem>
                         <FormLabel>Full Name</FormLabel>
                         <FormControl>
-                          <Input 
-                            placeholder="Enter your full name" 
+                          <Input
+                            placeholder="Enter your full name"
                             {...field}
                             value={field.value || ""}
                             data-testid="input-name"
@@ -237,25 +274,34 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                     name="gender"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Gender</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value || ""} data-testid="select-gender">
+                        <FormLabel>
+                          The gender you would like to be matched to
+                        </FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value || ""}
+                          data-testid="select-gender"
+                        >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder="Select your gender" />
+                              <SelectValue placeholder="Select gender" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
                             <SelectItem value="male">Male</SelectItem>
                             <SelectItem value="female">Female</SelectItem>
-                            <SelectItem value="non-binary">Non-binary</SelectItem>
-                            <SelectItem value="prefer_not_to_say">Prefer not to say</SelectItem>
+                            <SelectItem value="non-binary">
+                              Non-binary
+                            </SelectItem>
+                            <SelectItem value="prefer_not_to_say">
+                              Prefer not to say
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-
 
                   <FormField
                     control={form.control}
@@ -263,44 +309,110 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Timezone (Optional)</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value || ""} data-testid="select-timezone">
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value || ""}
+                          data-testid="select-timezone"
+                        >
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Select your timezone" />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="America/New_York">Eastern Time (ET)</SelectItem>
-                            <SelectItem value="America/Chicago">Central Time (CT)</SelectItem>
-                            <SelectItem value="America/Denver">Mountain Time (MT)</SelectItem>
-                            <SelectItem value="America/Los_Angeles">Pacific Time (PT)</SelectItem>
-                            <SelectItem value="America/Anchorage">Alaska Time (AKT)</SelectItem>
-                            <SelectItem value="Pacific/Honolulu">Hawaii Time (HST)</SelectItem>
-                            <SelectItem value="Europe/London">GMT (London)</SelectItem>
-                            <SelectItem value="Europe/Paris">CET (Paris)</SelectItem>
-                            <SelectItem value="Europe/Berlin">CET (Berlin)</SelectItem>
-                            <SelectItem value="Europe/Rome">CET (Rome)</SelectItem>
-                            <SelectItem value="Europe/Madrid">CET (Madrid)</SelectItem>
-                            <SelectItem value="Europe/Amsterdam">CET (Amsterdam)</SelectItem>
-                            <SelectItem value="Europe/Stockholm">CET (Stockholm)</SelectItem>
-                            <SelectItem value="Europe/Moscow">MSK (Moscow)</SelectItem>
-                            <SelectItem value="Asia/Tokyo">JST (Tokyo)</SelectItem>
-                            <SelectItem value="Asia/Shanghai">CST (Shanghai)</SelectItem>
-                            <SelectItem value="Asia/Hong_Kong">HKT (Hong Kong)</SelectItem>
-                            <SelectItem value="Asia/Singapore">SGT (Singapore)</SelectItem>
-                            <SelectItem value="Asia/Seoul">KST (Seoul)</SelectItem>
-                            <SelectItem value="Asia/Kolkata">IST (India)</SelectItem>
-                            <SelectItem value="Asia/Dubai">GST (Dubai)</SelectItem>
-                            <SelectItem value="Australia/Sydney">AEDT (Sydney)</SelectItem>
-                            <SelectItem value="Australia/Melbourne">AEDT (Melbourne)</SelectItem>
-                            <SelectItem value="Australia/Perth">AWST (Perth)</SelectItem>
-                            <SelectItem value="Pacific/Auckland">NZDT (Auckland)</SelectItem>
-                            <SelectItem value="America/Toronto">Eastern Time (Toronto)</SelectItem>
-                            <SelectItem value="America/Vancouver">Pacific Time (Vancouver)</SelectItem>
-                            <SelectItem value="America/Sao_Paulo">BRT (São Paulo)</SelectItem>
-                            <SelectItem value="America/Mexico_City">CST (Mexico City)</SelectItem>
-                            <SelectItem value="Africa/Cairo">EET (Cairo)</SelectItem>
-                            <SelectItem value="Africa/Johannesburg">SAST (Johannesburg)</SelectItem>
+                            <SelectItem value="America/New_York">
+                              Eastern Time (ET)
+                            </SelectItem>
+                            <SelectItem value="America/Chicago">
+                              Central Time (CT)
+                            </SelectItem>
+                            <SelectItem value="America/Denver">
+                              Mountain Time (MT)
+                            </SelectItem>
+                            <SelectItem value="America/Los_Angeles">
+                              Pacific Time (PT)
+                            </SelectItem>
+                            <SelectItem value="America/Anchorage">
+                              Alaska Time (AKT)
+                            </SelectItem>
+                            <SelectItem value="Pacific/Honolulu">
+                              Hawaii Time (HST)
+                            </SelectItem>
+                            <SelectItem value="Europe/London">
+                              GMT (London)
+                            </SelectItem>
+                            <SelectItem value="Europe/Paris">
+                              CET (Paris)
+                            </SelectItem>
+                            <SelectItem value="Europe/Berlin">
+                              CET (Berlin)
+                            </SelectItem>
+                            <SelectItem value="Europe/Rome">
+                              CET (Rome)
+                            </SelectItem>
+                            <SelectItem value="Europe/Madrid">
+                              CET (Madrid)
+                            </SelectItem>
+                            <SelectItem value="Europe/Amsterdam">
+                              CET (Amsterdam)
+                            </SelectItem>
+                            <SelectItem value="Europe/Stockholm">
+                              CET (Stockholm)
+                            </SelectItem>
+                            <SelectItem value="Europe/Moscow">
+                              MSK (Moscow)
+                            </SelectItem>
+                            <SelectItem value="Asia/Tokyo">
+                              JST (Tokyo)
+                            </SelectItem>
+                            <SelectItem value="Asia/Shanghai">
+                              CST (Shanghai)
+                            </SelectItem>
+                            <SelectItem value="Asia/Hong_Kong">
+                              HKT (Hong Kong)
+                            </SelectItem>
+                            <SelectItem value="Asia/Singapore">
+                              SGT (Singapore)
+                            </SelectItem>
+                            <SelectItem value="Asia/Seoul">
+                              KST (Seoul)
+                            </SelectItem>
+                            <SelectItem value="Asia/Kolkata">
+                              IST (India)
+                            </SelectItem>
+                            <SelectItem value="Asia/Dubai">
+                              GST (Dubai)
+                            </SelectItem>
+                            <SelectItem value="Australia/Sydney">
+                              AEDT (Sydney)
+                            </SelectItem>
+                            <SelectItem value="Australia/Melbourne">
+                              AEDT (Melbourne)
+                            </SelectItem>
+                            <SelectItem value="Australia/Perth">
+                              AWST (Perth)
+                            </SelectItem>
+                            <SelectItem value="Pacific/Auckland">
+                              NZDT (Auckland)
+                            </SelectItem>
+                            <SelectItem value="America/Toronto">
+                              Eastern Time (Toronto)
+                            </SelectItem>
+                            <SelectItem value="America/Vancouver">
+                              Pacific Time (Vancouver)
+                            </SelectItem>
+                            <SelectItem value="America/Sao_Paulo">
+                              BRT (São Paulo)
+                            </SelectItem>
+                            <SelectItem value="America/Mexico_City">
+                              CST (Mexico City)
+                            </SelectItem>
+                            <SelectItem value="Africa/Cairo">
+                              EET (Cairo)
+                            </SelectItem>
+                            <SelectItem value="Africa/Johannesburg">
+                              SAST (Johannesburg)
+                            </SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -308,8 +420,8 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                     )}
                   />
 
-                  <Button 
-                    type="submit" 
+                  <Button
+                    type="submit"
                     disabled={updateProfile.isPending}
                     data-testid="button-save-profile"
                   >
@@ -322,18 +434,21 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
         )}
 
         {/* Exclusions Section */}
-        {activeSection === 'exclusions' && (
+        {activeSection === "exclusions" && (
           <Card data-testid="section-exclusions">
             <CardHeader>
               <CardTitle>Exclusion Management</CardTitle>
               <p className="text-sm text-muted-foreground">
-                Users you've excluded from future matching. These users will not be matched with you.
+                Users you've excluded from future matching. These users will not
+                be matched with you.
               </p>
             </CardHeader>
             <CardContent>
               {exclusionsLoading ? (
                 <div className="text-center py-8">
-                  <div className="text-muted-foreground">Loading exclusions...</div>
+                  <div className="text-muted-foreground">
+                    Loading exclusions...
+                  </div>
                 </div>
               ) : exclusions.length === 0 ? (
                 <div className="text-center py-8">
@@ -346,8 +461,8 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
               ) : (
                 <div className="space-y-4">
                   {exclusions.map((exclusion) => (
-                    <div 
-                      key={exclusion.id} 
+                    <div
+                      key={exclusion.id}
                       className="flex items-center justify-between p-4 border border-border rounded-lg"
                       data-testid={`exclusion-${exclusion.id}`}
                     >
@@ -356,12 +471,16 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                           {getInitials(exclusion.excludedUser.name)}
                         </div>
                         <div>
-                          <h4 className="font-medium" data-testid={`exclusion-name-${exclusion.id}`}>
+                          <h4
+                            className="font-medium"
+                            data-testid={`exclusion-name-${exclusion.id}`}
+                          >
                             {exclusion.excludedUser.name}
                           </h4>
                           <p className="text-sm text-muted-foreground">
-                            {formatGender(exclusion.excludedUser.gender)} • 
-                            Excluded {new Date(exclusion.createdAt).toLocaleDateString()}
+                            {formatGender(exclusion.excludedUser.gender)} •
+                            Excluded{" "}
+                            {new Date(exclusion.createdAt).toLocaleDateString()}
                           </p>
                           {exclusion.reason && (
                             <p className="text-xs text-muted-foreground mt-1">
@@ -389,7 +508,7 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
         )}
 
         {/* Privacy Section */}
-        {activeSection === 'privacy' && (
+        {activeSection === "privacy" && (
           <Card data-testid="section-privacy">
             <CardHeader>
               <CardTitle>Privacy & Safety</CardTitle>
@@ -405,10 +524,16 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                     <div>
                       <p className="font-medium">Gender-based matching</p>
                       <p className="text-sm text-muted-foreground">
-                        You'll only be matched with users of the same gender
+                        You'll only be matched with the gender you've selected
+                        in your profile
                       </p>
                     </div>
-                    <Badge variant="secondary" data-testid="badge-gender-matching">Enabled</Badge>
+                    <Badge
+                      variant="secondary"
+                      data-testid="badge-gender-matching"
+                    >
+                      Enabled
+                    </Badge>
                   </div>
                   <div className="flex items-center justify-between p-3 border border-border rounded-lg">
                     <div>
@@ -417,7 +542,10 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                         Users you've excluded won't be matched with you
                       </p>
                     </div>
-                    <Badge variant="secondary" data-testid="badge-exclusions-active">
+                    <Badge
+                      variant="secondary"
+                      data-testid="badge-exclusions-active"
+                    >
                       {exclusions.length} excluded
                     </Badge>
                   </div>
@@ -433,10 +561,16 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                     <div>
                       <p className="font-medium">Message history</p>
                       <p className="text-sm text-muted-foreground">
-                        Your messages are stored securely. But accessible by Support Match team for support purposes.
+                        Your messages are stored securely. But accessible by
+                        Support Match team for support purposes.
                       </p>
                     </div>
-                    <Badge variant="secondary" data-testid="badge-message-storage">Not End to End Encrypted</Badge>
+                    <Badge
+                      variant="secondary"
+                      data-testid="badge-message-storage"
+                    >
+                      Not End to End Encrypted
+                    </Badge>
                   </div>
                 </div>
               </div>
@@ -453,7 +587,7 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                         You're eligible for new matches
                       </p>
                     </div>
-                    <Badge 
+                    <Badge
                       variant={user.isActive ? "default" : "destructive"}
                       data-testid="badge-account-status"
                     >
@@ -468,10 +602,10 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                       </p>
                     </div>
                     <Badge variant="outline" data-testid="badge-member-since">
-                      {new Date(user.createdAt!).toLocaleDateString('en-US', { 
-                        month: 'long', 
-                        day: 'numeric',
-                        year: 'numeric' 
+                      {new Date(user.createdAt!).toLocaleDateString("en-US", {
+                        month: "long",
+                        day: "numeric",
+                        year: "numeric",
                       })}
                     </Badge>
                   </div>
@@ -482,7 +616,7 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
         )}
 
         {/* Appearance Section */}
-        {activeSection === 'appearance' && (
+        {activeSection === "appearance" && (
           <Card data-testid="section-appearance">
             <CardHeader>
               <CardTitle>Appearance</CardTitle>
@@ -495,16 +629,17 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                 <h4 className="font-semibold mb-3">Theme</h4>
                 <div className="space-y-3">
                   <p className="text-sm text-muted-foreground">
-                    Choose your preferred theme or let the system decide based on your device settings.
+                    Choose your preferred theme or let the system decide based
+                    on your device settings.
                   </p>
-                  
+
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <button
-                      onClick={() => setTheme('light')}
+                      onClick={() => setTheme("light")}
                       className={`p-4 rounded-lg border-2 transition-all ${
-                        theme === 'light'
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-border/80'
+                        theme === "light"
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-border/80"
                       }`}
                       data-testid="theme-light"
                     >
@@ -512,17 +647,19 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                         <Sun className="w-5 h-5 text-amber-500" />
                         <div className="text-left">
                           <p className="font-medium">Light</p>
-                          <p className="text-sm text-muted-foreground">Bright and clean</p>
+                          <p className="text-sm text-muted-foreground">
+                            Bright and clean
+                          </p>
                         </div>
                       </div>
                     </button>
-                    
+
                     <button
-                      onClick={() => setTheme('dark')}
+                      onClick={() => setTheme("dark")}
                       className={`p-4 rounded-lg border-2 transition-all ${
-                        theme === 'dark'
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-border/80'
+                        theme === "dark"
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-border/80"
                       }`}
                       data-testid="theme-dark"
                     >
@@ -530,17 +667,19 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                         <Moon className="w-5 h-5 text-blue-500" />
                         <div className="text-left">
                           <p className="font-medium">Dark</p>
-                          <p className="text-sm text-muted-foreground">Easy on the eyes</p>
+                          <p className="text-sm text-muted-foreground">
+                            Easy on the eyes
+                          </p>
                         </div>
                       </div>
                     </button>
-                    
+
                     <button
-                      onClick={() => setTheme('system')}
+                      onClick={() => setTheme("system")}
                       className={`p-4 rounded-lg border-2 transition-all ${
-                        theme === 'system'
-                          ? 'border-primary bg-primary/5'
-                          : 'border-border hover:border-border/80'
+                        theme === "system"
+                          ? "border-primary bg-primary/5"
+                          : "border-border hover:border-border/80"
                       }`}
                       data-testid="theme-system"
                     >
@@ -548,14 +687,15 @@ export default function Profile({ user, onUserUpdate }: ProfileProps) {
                         <Monitor className="w-5 h-5 text-slate-500" />
                         <div className="text-left">
                           <p className="font-medium">System</p>
-                          <p className="text-sm text-muted-foreground">Matches device</p>
+                          <p className="text-sm text-muted-foreground">
+                            Matches device
+                          </p>
                         </div>
                       </div>
                     </button>
                   </div>
                 </div>
               </div>
-
             </CardContent>
           </Card>
         )}
